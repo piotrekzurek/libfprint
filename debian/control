@@ -1,0 +1,46 @@
+Source: libfprint
+Priority: extra
+Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
+Uploaders: Ulises Vitulli <uvitulli@fi.uba.ar>
+Build-Depends: debhelper (>= 5), autotools-dev, libusb-1.0-dev, libssl-dev, libglib2.0-dev, libmagick9-dev
+Standards-Version: 3.8.0
+Homepage: http://reactivated.net/fprint/
+Section: libs
+
+Package: libfprint-dev
+Section: libdevel
+Architecture: any
+Depends: libfprint0 (= ${binary:Version})
+Description: fingerprint library of fprint project, development headers
+ The fprint project aims to support for consumer fingerprint reader devices.
+ .
+ Previously, Linux support for such devices has been scattered amongst different
+ projects (many incomplete) and inconsistent in that application developers
+ would have to implement support for each type of fingerprint reader separately.
+ We're trying to change that by providing a central system to support all the
+ fingerprint readers we can get our hands on.
+ .
+ libfprint is the centre of our effort, it is the component which does the dirty
+ work of talking to fingerprint reading devices, and processing fingerprint
+ data.
+ .
+ This package provides development headers.
+
+Package: libfprint0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: fingerprint library of fprint project, shared libraries
+ The fprint project aims to support for consumer fingerprint reader devices.
+ .
+ Previously, Linux support for such devices has been scattered amongst different
+ projects (many incomplete) and inconsistent in that application developers
+ would have to implement support for each type of fingerprint reader separately.
+ We're trying to change that by providing a central system to support all the
+ fingerprint readers we can get our hands on.
+ .
+ libfprint is the centre of our effort, it is the component which does the dirty
+ work of talking to fingerprint reading devices, and processing fingerprint
+ data.
+ .
+ This package provides shared libraries.
