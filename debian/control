@@ -11,7 +11,8 @@ Package: libfprint-dev
 Section: libdevel
 Architecture: any
 Depends: libfprint0 (= ${binary:Version})
-Description: fingerprint library of fprint project, development headers
+Conflicts: libfprint0-old
+Description: async fingerprint library of fprint project, development headers
  The fprint project aims to support for consumer fingerprint reader devices.
  .
  Previously, Linux support for such devices has been scattered amongst different
@@ -23,6 +24,10 @@ Description: fingerprint library of fprint project, development headers
  libfprint is the centre of our effort, it is the component which does the dirty
  work of talking to fingerprint reading devices, and processing fingerprint
  data.
+ .
+ This library is based on new aproach of libusb-1.0, which handles asynchronous 
+ callback model allowing to perform a non-blocking device task. Old synchronous 
+ library has been renamed to libfprint-old.
  .
  This package provides development headers.
 
@@ -30,7 +35,8 @@ Package: libfprint0
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
-Description: fingerprint library of fprint project, shared libraries
+Conflicts: libfprint0-old
+Description: async fingerprint library of fprint project, shared libraries
  The fprint project aims to support for consumer fingerprint reader devices.
  .
  Previously, Linux support for such devices has been scattered amongst different
@@ -42,5 +48,9 @@ Description: fingerprint library of fprint project, shared libraries
  libfprint is the centre of our effort, it is the component which does the dirty
  work of talking to fingerprint reading devices, and processing fingerprint
  data.
+ .
+ This library is based on new aproach of libusb-1.0, which handles asynchronous 
+ callback model allowing to perform a non-blocking device task. Old synchronous 
+ library has been renamed to libfprint-old.
  .
  This package provides shared libraries.
