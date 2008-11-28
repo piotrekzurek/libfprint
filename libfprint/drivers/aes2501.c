@@ -938,7 +938,8 @@ static void dev_deinit(struct fp_img_dev *dev)
 }
 
 static const struct usb_id id_table[] = {
-	{ .vendor = 0x08ff, .product = 0x2580 },
+	{ .vendor = 0x08ff, .product = 0x2500 }, /* AES2500 */
+	{ .vendor = 0x08ff, .product = 0x2580 }, /* AES2501 */
 	{ 0, 0, 0, },
 };
 
@@ -948,6 +949,7 @@ struct fp_img_driver aes2501_driver = {
 		.name = FP_COMPONENT,
 		.full_name = "AuthenTec AES2501",
 		.id_table = id_table,
+		.scan_type = FP_SCAN_TYPE_SWIPE,
 	},
 	.flags = 0,
 	.img_height = -1,

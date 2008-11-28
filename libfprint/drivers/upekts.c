@@ -321,10 +321,13 @@ static int __handle_incoming_msg(struct read_msg_data *udata,
 			fp_err("cmd response without 28 byte?");
 			return -1;
 		}
-		if (innerbuf[3] || innerbuf[4]) {
-			fp_err("non-zero bytes in cmd response");
-			return -1;
-		}
+
+		/* not really sure what these 2 bytes are. on most people's hardware,
+		 * these bytes are always 0. However, Alon Bar-Lev's hardware gives
+		 * 0xfb 0xff during the READ28_OB initsm stage. so don't error out
+		 * if they are different... */
+		if (innerbuf[3] || innerbuf[4])
+			fp_dbg("non-zero bytes in cmd response");
 
 		innerlen = innerbuf[1] | (innerbuf[2] << 8);
 		innerlen = GUINT16_FROM_LE(innerlen) - 3;
@@ -1465,6 +1468,7 @@ struct fp_driver upekts_driver = {
 	.name = FP_COMPONENT,
 	.full_name = "UPEK TouchStrip",
 	.id_table = id_table,
+	.scan_type = FP_SCAN_TYPE_SWIPE,
 	.open = dev_init,
 	.close = dev_exit,
 	.enroll_start = enroll_start,

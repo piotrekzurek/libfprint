@@ -1,4 +1,6 @@
 lib_LTLIBRARIES = libfprint.la
+noinst_PROGRAMS = fprint-list-hal-info
+MOSTLYCLEANFILES = $(hal_fdi_DATA)
 
 UPEKTS_SRC = drivers/upekts.c
 UPEKTC_SRC = drivers/upektc.c
@@ -10,8 +12,8 @@ AES4000_SRC = drivers/aes4000.c
 FDU2000_SRC = drivers/fdu2000.c
 VCOM5S_SRC = drivers/vcom5s.c
 
-DRIVER_SRC = ""
-OTHER_SRC = ""
+DRIVER_SRC =
+OTHER_SRC =
 
 NBIS_SRC = \
 	nbis/include/bozorth.h \
@@ -53,6 +55,17 @@ NBIS_SRC = \
 libfprint_la_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
 libfprint_la_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
 libfprint_la_LIBADD = -lm $(LIBUSB_LIBS) $(GLIB_LIBS) $(CRYPTO_LIBS)
+
+fprint_list_hal_info_SOURCES = fprint-list-hal-info.c
+fprint_list_hal_info_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(IMAGEMAGICK_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
+fprint_list_hal_info_LDADD = $(builddir)/libfprint.la
+
+hal_fdi_DATA = 10-fingerprint-reader-fprint.fdi
+hal_fdidir = $(datadir)/hal/fdi/information/20thirdparty/
+
+$(hal_fdi_DATA): fprint-list-hal-info
+	$(builddir)/fprint-list-hal-info > $@
+
 
 if ENABLE_UPEKTS
 DRIVER_SRC += $(UPEKTS_SRC)

@@ -91,6 +91,8 @@ enum fp_dev_state {
 	DEV_STATE_IDENTIFY_STOPPING,
 };
 
+struct fp_driver **fprint_get_drivers (void);
+
 struct fp_dev {
 	struct fp_driver *drv;
 	libusb_device_handle *udev;
@@ -197,6 +199,7 @@ struct fp_driver {
 	const char *full_name;
 	const struct usb_id * const id_table;
 	enum fp_driver_type type;
+	enum fp_scan_type scan_type;
 
 	void *priv;
 
