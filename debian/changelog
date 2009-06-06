@@ -4,8 +4,9 @@ libfprint (20081125git-1) experimental; urgency=low
   * Upstream git checkout fixing little issues:
     - Fixes libtool problem.
     - Add more debuging support.
+  * Minor package updates to comply with 3.8.1 standard.
 
- -- Ulises Vitulli <uvitulli@fi.uba.ar>  Fri, 28 Nov 2008 03:14:15 -0200
+ -- Ulises Vitulli <uvitulli@fi.uba.ar>  Sat, 06 Jun 2009 12:00:26 -0300
 
 libfprint (20080810git-1) experimental; urgency=low
 

@@ -41,9 +41,9 @@ clean:
 	dh_testroot
 	rm -f build-stamp configure aclocal.m4 
 	find $(CURDIR) -type f -name Makefile.in -exec rm {} \;
-	
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
+	rm -rf depcomp compile config.guess config.sub ltmain.sh missing install-sh config.h.in
 	dh_clean 
 
 install: build
@@ -68,7 +68,7 @@ binary-arch: build install
 	dh_installdocs
 	dh_install --sourcedir=debian/tmp
 	dh_installman
-	dh_installchangelogs
+	dh_installchangelogs NEWS
 	dh_link
 	dh_strip
 	dh_compress
