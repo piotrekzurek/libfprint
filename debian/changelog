@@ -4,12 +4,43 @@ libfprint (20081125git-1) experimental; urgency=low
   * Upstream git checkout fixing little issues:
     - Fixes libtool problem.
     - Add more debuging support.
-  * Minor package updates to comply with 3.8.1 standard.
+  * Minor package updates to comply with 3.8.2 standard.
+  * Now depends on libusb-1.0.
 
  -- Ulises Vitulli <uvitulli@fi.uba.ar>  Sat, 06 Jun 2009 12:00:26 -0300
 
-libfprint (20080810git-1) experimental; urgency=low
+libfprint (0.0.6-2) experimental; urgency=low
 
-  * Initial Release.
+  * Fixing to non-native pkg (Closes: 481434)
 
- -- Ulises Vitulli <uvitulli@fi.uba.ar>  Fri, 19 Sep 2008 05:14:30 -0300
+ -- Ulises Vitulli <uvitulli@fi.uba.ar>  Thu, 15 May 2008 21:56:24 -0300
+
+libfprint (0.0.6-1) experimental; urgency=low
+
+  * New upstream release (Closes: #472780).
+  * Adding udev rule allowing 'plugdev' group access fprint known devices.
+
+ -- Ulises Vitulli <uvitulli@fi.uba.ar>  Wed, 26 Mar 2008 10:59:55 -0300
+
+libfprint (0.0.5-3) experimental; urgency=low
+
+  * Fixing dependences (Closes: #469813)
+
+ -- Ulises Vitulli <uvitulli@fi.uba.ar>  Fri, 07 Mar 2008 08:47:18 -0200
+
+libfprint (0.0.5-2) experimental; urgency=low
+
+  * Added license for nbis/* files in copyright file
+
+ -- Miguel Gea Milvaques <xerakko@debian.org>  Mon, 04 Feb 2008 21:02:48 +0100
+
+libfprint (0.0.5-1) experimental; urgency=low
+
+  [ Emfox Zhou ]
+  * Initial release (Closes: #460493, #438922)
+
+  [ Miguel Gea Milvaques ]
+  * Moved target from unstable to experimental
+  * Lintian clean ( makefile distclean in rules)
+
+ -- Miguel Gea Milvaques <xerakko@debian.org>  Sat, 02 Feb 2008 22:56:51 +0100

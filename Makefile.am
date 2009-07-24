@@ -1,4 +1,5 @@
 AUTOMAKE_OPTIONS = dist-bzip2
+ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = THANKS TODO HACKING libfprint.pc.in
 DISTCLEANFILES = ChangeLog libfprint.pc
 
@@ -18,4 +19,4 @@ ChangeLog:
 dist-hook: ChangeLog
 
 dist-up: dist
-	ncftpput upload.sourceforge.net incoming $(distdir).tar.bz2
+	rsync $(distdir).tar.bz2 frs.sourceforge.net:uploads/

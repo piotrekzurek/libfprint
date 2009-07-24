@@ -1,10 +1,10 @@
 Source: libfprint
 Priority: extra
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
-Uploaders: Ulises Vitulli <uvitulli@fi.uba.ar>
+Uploaders: Ulises Vitulli <uvitulli@fi.uba.ar>, Miguel Gea Milvaques <xerakko@debian.org>
 Build-Depends: debhelper (>= 5), autotools-dev, libusb-1.0-0-dev, libssl-dev, 
- libglib2.0-dev, libmagick9-dev, libxv-dev
-Standards-Version: 3.8.1
+ libglib2.0-dev, libxv-dev, libmagickcore-dev
+Standards-Version: 3.8.2
 Homepage: http://reactivated.net/fprint/
 Section: libs
 
@@ -12,7 +12,6 @@ Package: libfprint-dev
 Section: libdevel
 Architecture: any
 Depends: libfprint0 (= ${binary:Version})
-Conflicts: libfprint0-old
 Description: async fingerprint library of fprint project, development headers
  The fprint project aims to support for consumer fingerprint reader devices.
  .
@@ -36,7 +35,6 @@ Package: libfprint0
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
-Conflicts: libfprint0-old
 Description: async fingerprint library of fprint project, shared libraries
  The fprint project aims to support for consumer fingerprint reader devices.
  .
