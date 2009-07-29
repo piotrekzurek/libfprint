@@ -1,3 +1,9 @@
+libfprint (20081125git-2) experimental; urgency=low
+
+  * Fix missing dependence (Closes: #539085).
+
+ -- Ulises Vitulli <uvitulli@fi.uba.ar>  Wed, 29 Jul 2009 08:21:37 -0300
+
 libfprint (20081125git-1) experimental; urgency=low
 
   * Synchronized to upstream v0.1.0-pre1 release.

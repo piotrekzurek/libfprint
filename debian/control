@@ -2,8 +2,8 @@ Source: libfprint
 Priority: extra
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <uvitulli@fi.uba.ar>, Miguel Gea Milvaques <xerakko@debian.org>
-Build-Depends: debhelper (>= 5), autotools-dev, libusb-1.0-0-dev, libssl-dev, 
- libglib2.0-dev, libxv-dev, libmagickcore-dev
+Build-Depends: debhelper (>= 5), autotools-dev, libtool, automake, libglib2.0-dev, 
+ libxv-dev, libusb-1.0-0-dev, libssl-dev, libmagickcore-dev
 Standards-Version: 3.8.2
 Homepage: http://reactivated.net/fprint/
 Section: libs
@@ -18,10 +18,10 @@ Description: async fingerprint library of fprint project, development headers
  Previously, Linux support for such devices has been scattered amongst different
  projects (many incomplete) and inconsistent in that application developers
  would have to implement support for each type of fingerprint reader separately.
- We're trying to change that by providing a central system to support all the
- fingerprint readers we can get our hands on.
+ The idea is to change that by providing a central system to support all the
+ fingerprint readers as it's possible to get hands on.
  .
- libfprint is the centre of our effort, it is the component which does the dirty
+ libfprint is the centre of efforts, it is the component which does the dirty
  work of talking to fingerprint reading devices, and processing fingerprint
  data.
  .
@@ -41,10 +41,10 @@ Description: async fingerprint library of fprint project, shared libraries
  Previously, Linux support for such devices has been scattered amongst different
  projects (many incomplete) and inconsistent in that application developers
  would have to implement support for each type of fingerprint reader separately.
- We're trying to change that by providing a central system to support all the
- fingerprint readers we can get our hands on.
+ The idea is to change that by providing a central system to support all the
+ fingerprint readers as it's possible to get hands on.
  .
- libfprint is the centre of our effort, it is the component which does the dirty
+ libfprint is the centre of efforts, it is the component which does the dirty
  work of talking to fingerprint reading devices, and processing fingerprint
  data.
  .
