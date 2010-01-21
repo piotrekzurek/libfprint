@@ -11,7 +11,7 @@ Section: libs
 Package: libfprint-dev
 Section: libdevel
 Architecture: any
-Depends: libfprint0 (= ${binary:Version})
+Depends: libfprint0 (= ${binary:Version}), ${misc:Depends}
 Description: async fingerprint library of fprint project, development headers
  The fprint project aims to support for consumer fingerprint reader devices.
  .
@@ -34,7 +34,7 @@ Description: async fingerprint library of fprint project, development headers
 Package: libfprint0
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: async fingerprint library of fprint project, shared libraries
  The fprint project aims to support for consumer fingerprint reader devices.
  .
