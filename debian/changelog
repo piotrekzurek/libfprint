@@ -1,10 +1,12 @@
-libfprint (20081125git-3) experimental; urgency=low
+libfprint (20081125git-3) unstable; urgency=low
 
-  * The 'Almost-on-sid' upload.
-  * Update Standard-version to 3.8.3
+  * The 'Oh-yeah!' upload:
+    - Droping pkg from experimental, now going to unstable.
+  * Switch to dpkg-source 3.0 (quilt) format.
+  * Minor package updates to comply with 3.8.4 standard.
     - debian/control: Added misc:Depends for libfprint0+libfprint-dev.
 
- -- Ulises Vitulli <uvitulli@fi.uba.ar>  Thu, 21 Jan 2010 20:17:25 -0300
+ -- Ulises Vitulli <uvitulli@fi.uba.ar>  Wed, 14 Apr 2010 12:00:01 -0300
 
 libfprint (20081125git-2) experimental; urgency=low
 

@@ -2,9 +2,9 @@ Source: libfprint
 Priority: extra
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <uvitulli@fi.uba.ar>, Miguel Gea Milvaques <xerakko@debian.org>
-Build-Depends: debhelper (>= 5), autotools-dev, libtool, automake, libglib2.0-dev, 
- libxv-dev, libusb-1.0-0-dev, libssl-dev, libmagickcore-dev
-Standards-Version: 3.8.2
+Build-Depends: debhelper (>= 5), autotools-dev, libtool, automake, 
+ libusb-1.0-0-dev, libssl-dev, libglib2.0-dev, libmagick9-dev, libxv-dev
+Standards-Version: 3.8.4
 Homepage: http://reactivated.net/fprint/
 Section: libs
 
@@ -21,13 +21,12 @@ Description: async fingerprint library of fprint project, development headers
  The idea is to change that by providing a central system to support all the
  fingerprint readers as it's possible to get hands on.
  .
- libfprint is the centre of efforts, it is the component which does the dirty
- work of talking to fingerprint reading devices, and processing fingerprint
- data.
+ libfprint is the centre of efforts, this component does the dirty job of
+ talking to fingerprint reading devices, and processing fingerprint data.
  .
- This library is based on new aproach of libusb-1.0, which handles asynchronous 
- callback model allowing to perform a non-blocking device task. Old synchronous 
- library has been renamed to libfprint-old.
+ This library depends on the new libusb, which performs asynchronous callbacks,
+ allowing fprint to perform non-blocking device tasks. 
+ Old synchronous library has been deprecated in favor of the new libusb-1.0.
  .
  This package provides development headers.
 
@@ -44,12 +43,11 @@ Description: async fingerprint library of fprint project, shared libraries
  The idea is to change that by providing a central system to support all the
  fingerprint readers as it's possible to get hands on.
  .
- libfprint is the centre of efforts, it is the component which does the dirty
- work of talking to fingerprint reading devices, and processing fingerprint
- data.
+ libfprint is the centre of efforts, this component does the dirty job of
+ talking to fingerprint reading devices, and processing fingerprint data.
  .
- This library is based on new aproach of libusb-1.0, which handles asynchronous 
- callback model allowing to perform a non-blocking device task. Old synchronous 
- library has been renamed to libfprint-old.
+ This library depends on the new libusb, which performs asynchronous callbacks,
+ allowing fprint to perform non-blocking device tasks. 
+ Old synchronous library has been deprecated in favor of the new libusb-1.0.
  .
  This package provides shared libraries.
