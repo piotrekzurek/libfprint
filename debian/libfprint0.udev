@@ -3,6 +3,8 @@
 
 # Device aes1610
 ATTRS{idVendor}=="08ff", ATTRS{idProduct}=="1600", MODE="0664", GROUP="plugdev"
+# Device aes2501-wy (replaces aes2501-wy)
+ATTRS{idVendor}=="08ff", ATTRS{idProduct}=="2500", MODE="0664", GROUP="plugdev"
 # Device aes2501
 ATTRS{idVendor}=="08ff", ATTRS{idProduct}=="2580", MODE="0664", GROUP="plugdev"
 # Device aes4000
