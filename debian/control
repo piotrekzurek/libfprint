@@ -1,7 +1,7 @@
 Source: libfprint
 Priority: extra
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
-Uploaders: Ulises Vitulli <uvitulli@fi.uba.ar>, Miguel Gea Milvaques <xerakko@debian.org>
+Uploaders: Ulises Vitulli <dererk@debian.org>, Miguel Gea Milvaques <xerakko@debian.org>
 Build-Depends: debhelper (>= 5), autotools-dev, libtool, automake, 
  libusb-1.0-0-dev, libssl-dev, libglib2.0-dev, libmagick9-dev, libxv-dev
 Standards-Version: 3.8.4
