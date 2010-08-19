@@ -1,3 +1,17 @@
+libfprint (20100819git-1) unstable; urgency=low
+
+  * New upstream release:
+    - upeke2: Add support for 0x2e status code (Closes: #584563, #585179).
+    - Don't crash when no devices are present.
+    - Implement discover() methods for upeke2 and upeksonly.
+    - Rework "discover" code for drivers.
+    - Finish implementation of AES1610 driver.
+    - Add udev rules to set devices to autosuspend.
+    - Add gdk-pixbuf support.
+  * Bump Standard-version up to 3.9.1.
+
+ -- Ulises Vitulli <dererk@debian.org>  Thu, 19 Aug 2010 13:30:18 -0300
+
 libfprint (20081125git-4) unstable; urgency=low
 
   * debian/libfprint0.udev:

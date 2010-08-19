@@ -1,5 +1,5 @@
-AC_INIT([libfprint], [0.1.0-pre2])
-AM_INIT_AUTOMAKE
+AC_INIT([libfprint], [0.2.0])
+AM_INIT_AUTOMAKE([1.11 dist-bzip2 no-dist-gzip check-news])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([libfprint/core.c])
 AM_CONFIG_HEADER([config.h])
@@ -19,10 +19,11 @@ AC_SUBST(lt_major)
 AC_SUBST(lt_revision)
 AC_SUBST(lt_age)
 
-all_drivers="upekts upektc upeksonly vcom5s uru4000 fdu2000 aes1610 aes2501 aes4000"
+all_drivers="upeke2 upekts upektc upeksonly vcom5s uru4000 fdu2000 aes1610 aes2501 aes4000"
 
-require_imagemagick='no'
+require_imaging='no'
 require_aeslib='no'
+enable_upeke2='no'
 enable_upekts='no'
 enable_upektc='no'
 enable_upeksonly='no'
@@ -43,6 +44,10 @@ for driver in `echo ${drivers} | sed -e 's/,/ /g' -e 's/,$//g'`; do
 		upekts)
 			AC_DEFINE([ENABLE_UPEKTS], [], [Build UPEK TouchStrip driver])
 			enable_upekts="yes"
+		;;
+		upeke2)
+			AC_DEFINE([ENABLE_UPEKE2], [], [Build UPEK Eikon 2])
+			enable_upeke2="yes"
 		;;
 		upektc)
 			AC_DEFINE([ENABLE_UPEKTC], [], [Build UPEK TouchChip driver])
@@ -77,22 +82,22 @@ for driver in `echo ${drivers} | sed -e 's/,/ /g' -e 's/,$//g'`; do
 		aes4000)
 			AC_DEFINE([ENABLE_AES4000], [], [Build AuthenTec AES4000 driver])
 			require_aeslib="yes"
-			require_imagemagick="yes"
+			require_imaging="yes"
 			enable_aes4000="yes"
 		;;
 	esac
 done
 
 AM_CONDITIONAL([ENABLE_UPEKTS], [test "$enable_upekts" != "no"])
+AM_CONDITIONAL([ENABLE_UPEKE2], [test "$enable_upeke2" != "no"])
 #AM_CONDITIONAL([ENABLE_UPEKTC], [test "$enable_upektc" != "no"])
 AM_CONDITIONAL([ENABLE_UPEKSONLY], [test "$enable_upeksonly" != "no"])
 AM_CONDITIONAL([ENABLE_VCOM5S], [test "$enable_vcom5s" != "no"])
 AM_CONDITIONAL([ENABLE_URU4000], [test "$enable_uru4000" != "no"])
 #AM_CONDITIONAL([ENABLE_FDU2000], [test "$enable_fdu2000" != "no"])
-#AM_CONDITIONAL([ENABLE_AES1610], [test "$enable_aes1610" != "no"])
+AM_CONDITIONAL([ENABLE_AES1610], [test "$enable_aes1610" != "no"])
 AM_CONDITIONAL([ENABLE_AES2501], [test "$enable_aes2501" != "no"])
 AM_CONDITIONAL([ENABLE_AES4000], [test "$enable_aes4000" != "no"])
-AM_CONDITIONAL([REQUIRE_IMAGEMAGICK], [test "$require_imagemagick" != "no"])
 AM_CONDITIONAL([REQUIRE_AESLIB], [test "$require_aeslib" != "no"])
 
 
@@ -109,11 +114,26 @@ PKG_CHECK_MODULES(GLIB, "glib-2.0")
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
-if test "$require_imagemagick" != "no"; then
-PKG_CHECK_MODULES(IMAGEMAGICK, "ImageMagick")
-AC_SUBST(IMAGEMAGICK_CFLAGS)
-AC_SUBST(IMAGEMAGICK_LIBS)
-fi;
+imagemagick_found=no
+gdkpixbuf_found=no
+
+if test "$require_imaging" != "no"; then
+	PKG_CHECK_MODULES(IMAGING, gthread-2.0 gdk-pixbuf-2.0, [gdkpixbuf_found=yes], [gdkpixbuf_found=no])
+	if test "$gdkpixbuf_found" != "yes"; then
+		PKG_CHECK_MODULES(IMAGING, ImageMagick, [imagemagick_found=yes], [imagemagick_found=no])
+	fi
+fi
+
+if test "$require_imaging" != "no"; then
+	if test "$gdkpixbuf_found" != "yes" && test "$imagemagick_found" != "yes"; then
+		AC_MSG_ERROR([gdk-pixbuf or ImageMagick is required for imaging support])
+	fi
+fi
+
+AM_CONDITIONAL([REQUIRE_GDKPIXBUF], [test "$gdkpixbuf_found" != "no"])
+AM_CONDITIONAL([REQUIRE_IMAGEMAGICK], [test "$imagemagick_found" != "no"])
+AC_SUBST(IMAGING_CFLAGS)
+AC_SUBST(IMAGING_LIBS)
 
 # Examples build
 AC_ARG_ENABLE([examples-build], [AS_HELP_STRING([--enable-examples-build],

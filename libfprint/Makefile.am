@@ -1,7 +1,8 @@
 lib_LTLIBRARIES = libfprint.la
-noinst_PROGRAMS = fprint-list-hal-info
-MOSTLYCLEANFILES = $(hal_fdi_DATA)
+noinst_PROGRAMS = fprint-list-hal-info fprint-list-udev-rules
+MOSTLYCLEANFILES = $(hal_fdi_DATA) $(udev_rules_DATA)
 
+UPEKE2_SRC = drivers/upeke2.c
 UPEKTS_SRC = drivers/upekts.c
 UPEKTC_SRC = drivers/upektc.c
 UPEKSONLY_SRC = drivers/upeksonly.c
@@ -66,6 +67,19 @@ hal_fdidir = $(datadir)/hal/fdi/information/20thirdparty/
 $(hal_fdi_DATA): fprint-list-hal-info
 	$(builddir)/fprint-list-hal-info > $@
 
+fprint_list_udev_rules_SOURCES = fprint-list-udev-rules.c
+fprint_list_udev_rules_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(IMAGEMAGICK_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
+fprint_list_udev_rules_LDADD = $(builddir)/libfprint.la
+
+udev_rules_DATA = 60-fprint-autosuspend.rules
+udev_rulesdir = $(sysconfdir)/udev/rules.d/
+
+$(udev_rules_DATA): fprint-list-udev-rules
+	$(builddir)/fprint-list-udev-rules > $@
+
+if ENABLE_UPEKE2
+DRIVER_SRC += $(UPEKE2_SRC)
+endif
 
 if ENABLE_UPEKTS
 DRIVER_SRC += $(UPEKTS_SRC)
@@ -91,9 +105,9 @@ endif
 #DRIVER_SRC += $(FDU2000_SRC)
 #endif
 
-#if ENABLE_AES1610
-#DRIVER_SRC += $(AES1610_SRC)
-#endif
+if ENABLE_AES1610
+DRIVER_SRC += $(AES1610_SRC)
+endif
 
 if ENABLE_AES2501
 DRIVER_SRC += $(AES2501_SRC)
@@ -105,8 +119,14 @@ endif
 
 if REQUIRE_IMAGEMAGICK
 OTHER_SRC += imagemagick.c
-libfprint_la_CFLAGS += $(IMAGEMAGICK_CFLAGS)
-libfprint_la_LIBADD += $(IMAGEMAGICK_LIBS)
+libfprint_la_CFLAGS += $(IMAGING_CFLAGS)
+libfprint_la_LIBADD += $(IMAGING_LIBS)
+endif
+
+if REQUIRE_GDKPIXBUF
+OTHER_SRC += gdkpixbuf.c
+libfprint_la_CFLAGS += $(IMAGING_CFLAGS)
+libfprint_la_LIBADD += $(IMAGING_LIBS)
 endif
 
 if REQUIRE_AESLIB
