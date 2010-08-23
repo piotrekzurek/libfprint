@@ -1,3 +1,15 @@
+libfprint (20100820git-1) unstable; urgency=low
+
+  * New upstream snapshot.
+  * Remove local patches, reported and applied on upstream side, 
+    thanks BastienNocera:
+    - Check-return-code-from-img2print-conversion.patch.
+    - Add-some-corrective-action-if-there-are-missing-pack.patch.
+    - Make-the-2-right-shift-correction-happen-on-image-ha.patch.
+    - Dont-consider-the-scan-complete-unless-there-is-atle.patch.
+
+ -- Ulises Vitulli <dererk@debian.org>  Mon, 23 Aug 2010 09:02:32 -0300
+
 libfprint (20100819git-2) unstable; urgency=low
 
   * debian/libfprint0.udev:

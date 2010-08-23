@@ -1,3 +1,53 @@
+commit 25161286f5c9bde3a03eb181e8c4db8029f94001
+Author: Alexia Death <alexiadeath@gmail.com>
+Date:   Sat Dec 26 17:02:03 2009 +0200
+
+    Only complete scan with MIN_ROWS in print
+    
+    Don't consider the scan complete unless theres at least
+    MIN_ROWS recorded or very long blank read occurred.
+    
+    Typical problem spot: one brief touch before starting the
+    actual scan. Happens most commonly if scan is started from
+    before the first joint resulting in a gap after the inital touch.
+    
+    http://lists.reactivated.net/pipermail/fprint/2009-December/001406.html
+
+commit c575afba9ae9c518f208d5834e2ee72f8aede72c
+Author: Alexia Death <alexiadeath@gmail.com>
+Date:   Fri Dec 25 00:04:55 2009 +0200
+
+    Make the +2 right shift happen on image handoff.
+    
+    Rather than when reading the rows. Doing it there seems a lot
+    more sensible and does not get in the way of minimizing the
+    impact of lost USB packets.
+    
+    http://lists.reactivated.net/pipermail/fprint/2009-December/001404.html
+
+commit 8cd31f6ad81bc2d8e8d3ffdea7cb4f13a6914684
+Author: Alexia Death <alexiadeath@gmail.com>
+Date:   Thu Dec 24 21:42:01 2009 +0200
+
+    Try to correct missing packets in image stream
+    
+    If a packet goes missing, use the data from previous row
+    to minimize distortion, or use some neutral dummy data.
+    
+    http://lists.reactivated.net/pipermail/fprint/2009-December/001404.html
+
+commit 4b518bd230ef0f3a26c8eb89736815ed9334b6bb
+Author: Alexia Death <alexiadeath@gmail.com>
+Date:   Sat Dec 26 01:00:59 2009 +0200
+
+    Fix a segfault if a scan was shorter than 8 lines.
+    
+    This segfault was caused by proceeding to free the conversion result
+    without checking for an error condition in image to print
+    data conversion.
+    
+    http://lists.reactivated.net/pipermail/fprint/2009-December/001405.html
+
 commit daee067c4ffabff9836617b90c547873130087f1
 Author: Bastien Nocera <hadess@hadess.net>
 Date:   Thu Aug 19 14:43:30 2010 +0100
