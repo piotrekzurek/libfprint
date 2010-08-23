@@ -1,3 +1,12 @@
+libfprint (20100819git-2) unstable; urgency=low
+
+  * debian/libfprint0.udev:
+    - Include support for uru400 (05ba:0008).
+    - Include support for upeke2 and upeksonly (147e:2016).
+    - Include support for Veridicom 5thSense (061a:0110).
+
+ -- Ulises Vitulli <dererk@debian.org>  Sun, 22 Aug 2010 21:48:02 -0300
+
 libfprint (20100819git-1) unstable; urgency=low
 
   * New upstream release:

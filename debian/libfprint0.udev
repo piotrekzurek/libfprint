@@ -1,5 +1,5 @@
 ##
-# udev rules file for Fprint's libpfprint0 library
+# udev rules file for Fprint's libfprint0 library
 
 # Device aes1610
 ATTRS{idVendor}=="08ff", ATTRS{idProduct}=="1600", MODE="0664", GROUP="plugdev"
@@ -24,6 +24,12 @@ ATTRS{idVendor}=="045e", ATTRS{idProduct}=="00bd", MODE="0664", GROUP="plugdev"
 # Device uru4000
 ATTRS{idVendor}=="045e", ATTRS{idProduct}=="00ca", MODE="0664", GROUP="plugdev"
 # Device uru4000
-ATTRS{idVendor}=="05ba", ATTRS{idProduct}=="0007", MODE="0664", GROUP="plugdev"
-# Device uru4000
 ATTRS{idVendor}=="05ba", ATTRS{idProduct}=="000a", MODE="0664", GROUP="plugdev"
+# Device uru4000
+ATTRS{idVendor}=="05ba", ATTRS{idProduct}=="0007", MODE="0664", GROUP="plugdev"
+# Device uru4000 
+ATTRS{idVendor}=="05ba", ATTRS{idProduct}=="0008", MODE="0664", GROUP="plugdev"
+# Device upeke2 and upeksonly
+ATTRS{idVendor}=="147e", ATTRS{idProduct}=="2016", MODE="0664", GROUP="plugdev"
+# Device Veridicom 5thSense
+ATTRS{idVendor}=="061a", ATTRS{idProduct}=="0110", MODE="0664", GROUP="plugdev"
