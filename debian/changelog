@@ -1,3 +1,11 @@
+libfprint (20110418git-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added Validity VFS101 device support. 
+  * Bump Standard-version up to 3.9.2.0 (no changes needed).
+
+ -- Ulises Vitulli <dererk@debian.org>  Tue, 19 Apr 2011 14:58:27 -0300
+
 libfprint (20100820git-1) unstable; urgency=low
 
   * New upstream snapshot.

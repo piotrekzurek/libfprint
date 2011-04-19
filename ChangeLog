@@ -1,3 +1,131 @@
+commit f8aa82a554a0862eb9b83869d42dbefbde666543
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Mon Apr 18 18:02:37 2011 +0100
+
+    0.4.0
+
+commit 1451a2dde2ca0651ec3e5711ee6278d89f3cc32a
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Fri Apr 8 15:38:33 2011 +0100
+
+    build: Quiet by default
+
+commit d2e957683f5b9bd4781e2216c259e9b10fa3508d
+Author: Sergio Cerlesi <sergio.cerlesi@gmail.com>
+Date:   Wed Mar 30 14:20:22 2011 +0200
+
+    Added support for Validity VFS101
+    
+    USB ID 138a:0001
+
+commit a3ae96c2143ee7837225772008872ed0627336e1
+Author: Sergio Cerlesi <sergio.cerlesi@gmail.com>
+Date:   Tue Feb 22 14:39:11 2011 +0100
+
+    Fix function fpi_im_resize on create new image
+    
+    The function fpi_im_resize copy the new resized image into old fp_img
+    instead of newimg so, new image is empty and often it generated a
+    segmentation fault error.
+
+commit 3dd905d4e92962a970b877285fa6f39ed997a2ea
+Author: Sergio Cerlesi <sergio.cerlesi@gmail.com>
+Date:   Wed Feb 16 09:34:55 2011 +0100
+
+    Fix return timeout of fp_get_next_timeout
+    
+    On function fp_get_next_timeout if exist fprint timeout or libusb
+    timeout the function return the smaller of they.
+    
+    But if one of that not exist and have a smaller value the function
+    return a timeout that not exist.
+
+commit aab031ce371e690eb550e8414282180190880ae3
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Wed Sep 8 11:11:31 2010 +0100
+
+    0.3.0
+
+commit 6bfc516553b8db1ed3a3d275eb3ff3f0bde24b48
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Wed Sep 8 11:03:58 2010 +0100
+
+    Add test program for C++ support
+    
+    So that we don't regress
+
+commit ff842125c59ec87028bf53618b0a6acb310702e0
+Author: Kunal Gangakhedkar <kunal.gangakhedkar@gmail.com>
+Date:   Wed Sep 8 12:13:17 2010 +0530
+
+    Add C++ guards to take care of C++ name-mangling.
+    
+    The libfprint library is generally built with C calling conventions.
+    Which makes it difficult to link to C++ programs as it is.
+    
+    This patch adds the support for linking with C++ code - by telling the C++
+    compiler to use C calling conventions for libfprint functions.
+    
+    Reported-by: Guus Ellenkamp <guus@activediscovery.net>
+    Signed-off-by: Kunal Gangakhedkar <kunal.gangakhedkar@gmail.com>
+
+commit 712ebb6d44c421543a999227c92d6e08003c7a96
+Author: Hugo Grostabussiat <dw23.devel@gmail.com>
+Date:   Tue Aug 31 16:57:26 2010 +0200
+
+    Namespace functions and structs for 147e:2016
+    
+    Inserted "_2016" in structures, enums and functions names
+    that are related with device 147e:2016.
+
+commit a18f318446df01d27f3a8dc677c2a644fb086a60
+Author: Hugo Grostabussiat <dw23.devel@gmail.com>
+Date:   Tue Aug 31 16:09:22 2010 +0200
+
+    Added support for UPEK TCS4C (USB ID 147e:1000)
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=29719
+
+commit 15b8e8f37617306cbfb03679475bb714a4f28a73
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Wed Aug 25 11:20:55 2010 +0100
+
+    Remove HAL fdi generation
+    
+    HAL is deprecated, and the rules are broken when multiple
+    drivers use the same USB IDs.
+
+commit 9f8dd29a553ce61999cd0cee8c81013cbeb07926
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Wed Aug 25 11:17:42 2010 +0100
+
+    Make sure all sources are dist'ed
+    
+    So that you can compile against ImageMagick even if the
+    distter doesn't.
+
+commit f28c5797791edd8b17f05ed3671b45223326dd21
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Wed Aug 25 11:17:19 2010 +0100
+
+    Print out summary of build options
+    
+    At the end of the configure run.
+
+commit 375575b701fd1a1187b75c472ea77fb1e89ee7a2
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Wed Aug 25 00:42:01 2010 +0100
+
+    Port OpenSSL using code to NSS
+    
+    As OpenSSL cannot really be used in an LGPLv2+ piece of software
+    without an exception.
+    
+    Adapted from the example code at:
+    http://www.mozilla.org/projects/security/pki/nss/sample-code/sample2.html
+    and:
+    http://github.com/bagder/curl/commit/f3b77e5
+
 commit 25161286f5c9bde3a03eb181e8c4db8029f94001
 Author: Alexia Death <alexiadeath@gmail.com>
 Date:   Sat Dec 26 17:02:03 2009 +0200

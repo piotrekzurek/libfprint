@@ -33,3 +33,5 @@ ATTRS{idVendor}=="05ba", ATTRS{idProduct}=="0008", MODE="0664", GROUP="plugdev"
 ATTRS{idVendor}=="147e", ATTRS{idProduct}=="2016", MODE="0664", GROUP="plugdev"
 # Device Veridicom 5thSense
 ATTRS{idVendor}=="061a", ATTRS{idProduct}=="0110", MODE="0664", GROUP="plugdev"
+# Device Validity VFS101 
+ATTRS{idVendor}=="138a", ATTRS{idProduct}=="0001", MODE="0664", GROUP="plugdev"

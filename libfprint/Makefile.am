@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libfprint.la
-noinst_PROGRAMS = fprint-list-hal-info fprint-list-udev-rules
-MOSTLYCLEANFILES = $(hal_fdi_DATA) $(udev_rules_DATA)
+noinst_PROGRAMS = fprint-list-udev-rules
+MOSTLYCLEANFILES = $(udev_rules_DATA)
 
 UPEKE2_SRC = drivers/upeke2.c
 UPEKTS_SRC = drivers/upekts.c
@@ -12,6 +12,23 @@ AES2501_SRC = drivers/aes2501.c drivers/aes2501.h
 AES4000_SRC = drivers/aes4000.c
 FDU2000_SRC = drivers/fdu2000.c
 VCOM5S_SRC = drivers/vcom5s.c
+VFS101_SRC = drivers/vfs101.c
+
+EXTRA_DIST = \
+	$(UPEKE2_SRC)		\
+	$(UPEKTS_SRC)		\
+	$(UPEKTC_SRC)		\
+	$(UPEKSONLY_SRC)	\
+	$(URU4000_SRC)		\
+	$(AES1610_SRC)		\
+	$(AES2501_SRC)		\
+	$(AES4000_SRC)		\
+	$(FDU2000_SRC)		\
+	$(VCOM5S_SRC)		\
+	$(VFS101_SRC)		\
+	aeslib.c aeslib.h	\
+	imagemagick.c		\
+	gdkpixbuf.c
 
 DRIVER_SRC =
 OTHER_SRC =
@@ -56,16 +73,6 @@ NBIS_SRC = \
 libfprint_la_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
 libfprint_la_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
 libfprint_la_LIBADD = -lm $(LIBUSB_LIBS) $(GLIB_LIBS) $(CRYPTO_LIBS)
-
-fprint_list_hal_info_SOURCES = fprint-list-hal-info.c
-fprint_list_hal_info_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(IMAGEMAGICK_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
-fprint_list_hal_info_LDADD = $(builddir)/libfprint.la
-
-hal_fdi_DATA = 10-fingerprint-reader-fprint.fdi
-hal_fdidir = $(datadir)/hal/fdi/information/20thirdparty/
-
-$(hal_fdi_DATA): fprint-list-hal-info
-	$(builddir)/fprint-list-hal-info > $@
 
 fprint_list_udev_rules_SOURCES = fprint-list-udev-rules.c
 fprint_list_udev_rules_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(IMAGEMAGICK_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
@@ -115,6 +122,10 @@ endif
 
 if ENABLE_AES4000
 DRIVER_SRC += $(AES4000_SRC)
+endif
+
+if ENABLE_VFS101
+DRIVER_SRC += $(VFS101_SRC)
 endif
 
 if REQUIRE_IMAGEMAGICK
