@@ -23,7 +23,6 @@ endif
 ifneq "$(wildcard /usr/share/misc/config.guess)" ""
 	cp -f /usr/share/misc/config.guess config.guess
 endif
-	./autogen.sh
 	./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info CFLAGS="$(CFLAGS)" LDFLAGS="-z,defs"
 
 
@@ -42,11 +41,7 @@ clean:
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
 	# Remove auto* cache
-	rm -rf m4 aclocal.m4 build-stamp 
-	rm -rf Makefile.in config.log compile config.guess  \
-		config.h.in config.sub configure depcomp  \
-		doc/Makefile.in examples/Makefile.in install-sh \
-		libfprint/Makefile.in ltmain.sh missing
+	rm -rf build-stamp 
 	dh_clean 
 
 install: build
@@ -57,6 +52,9 @@ install: build
 	
 	# Add here commands to install the package into debian/tmp
 	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
+	set -e; for file in `ls $(CURDIR)/debian/tmp/usr/lib/*.la`; do \
+		sed -i "/dependency_libs/ s/'.*'/''/" $$file; \
+	done
 
 
 # Build architecture-independent files here.

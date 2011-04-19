@@ -1,6 +1,9 @@
 libfprint (20110418git-1) unstable; urgency=low
 
   * New upstream release.
+  * Removing resigned uploader from the Uploaders filed (Closes: #595719).
+  * Cleaning out 'dependency_libs' for multiarch support (Closes: #620447).
+  * Added libnss as build-depend for uru4000.  
   * Added Validity VFS101 device support. 
   * Bump Standard-version up to 3.9.2.0 (no changes needed).
 
