@@ -1,3 +1,9 @@
+libfprint (20110418git-2) unstable; urgency=low
+
+  * Transitioning from libmagick9 to libmagickcore (Closes: #625597, #629788).
+
+ -- Ulises Vitulli <dererk@debian.org>  Sun, 12 Jun 2011 12:22:16 -0300
+
 libfprint (20110418git-1) unstable; urgency=low
 
   * New upstream release.
