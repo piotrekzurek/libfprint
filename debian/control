@@ -29,7 +29,6 @@ Description: async fingerprint library of fprint project, development headers
  .
  This library depends on the new libusb, which performs asynchronous callbacks,
  allowing fprint to perform non-blocking device tasks. 
- Old synchronous library has been deprecated in favor of the new libusb-1.0.
  .
  This package provides development headers.
 
@@ -52,6 +51,5 @@ Description: async fingerprint library of fprint project, shared libraries
  .
  This library depends on the new libusb, which performs asynchronous callbacks,
  allowing fprint to perform non-blocking device tasks. 
- Old synchronous library has been deprecated in favor of the new libusb-1.0.
  .
  This package provides shared libraries.
