@@ -1,3 +1,25 @@
+libfprint (1:0.4.0-4-gdfff16f-1) unstable; urgency=low
+
+  * New upstream release snapshot.
+    - Fix versioning with an epoch: the 0.4.0 version was released and
+      this is indeed a post-0.4.0 upstream snapshot.
+
+  * Bump debhelper Build-Depends and compat to 9.
+  * Use short debhelper style; migrate to multiarch.
+  * Use the built udev rules for autosuspend; append our mode and group
+    specificities.
+  * Add symbols tracking for libfprint0.
+  * Update homepage to the new home at freedesktop.org.
+  * Bump Standards-Version to 3.9.3 without changes needed.
+  * Add Vcs-* to reflect the new Git repository.
+  * Drop the mention of the old synchronous library from the
+    description.
+  * Drop useless dirs specifications.
+  * Avoid duplication of Section snippet in control.
+  * Add myself as uploader.
+
+ -- Didier Raboud <odyx@debian.org>  Sat, 19 May 2012 17:11:57 +0200
+
 libfprint (20110418git-2) unstable; urgency=low
 
   * Transitioning from libmagick9 to libmagickcore (Closes: #625597, #629788).
