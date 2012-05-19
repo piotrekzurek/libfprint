@@ -2,7 +2,7 @@ Source: libfprint
 Priority: extra
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>
-Build-Depends: debhelper (>= 5), autotools-dev, libtool, automake, 
+Build-Depends: debhelper (>= 9), autotools-dev, libtool, automake,
  libusb-1.0-0-dev, libssl-dev, libglib2.0-dev, libmagickcore-dev, libxv-dev,
  libnss3-dev
 Standards-Version: 3.9.2.0
