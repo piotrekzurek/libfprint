@@ -6,6 +6,10 @@ CONFIG_ARGS = --disable-silent-rules
 %:
 	dh $@ --parallel
 
+override_dh_clean:
+	dh_clean
+	rm -f debian/libfprint0.udev
+
 override_dh_auto_configure:
 	# From autogen.sh
 	libtoolize --copy --force
@@ -21,3 +25,7 @@ override_dh_auto_install:
 	set -e; for file in `ls $(CURDIR)/debian/tmp/usr/lib/*/*.la`; do \
 		sed -i "/dependency_libs/ s/'.*'/''/" $$file; \
 	done
+
+override_dh_installudev:
+	sed -e 's/$$/, MODE="0664", GROUP="plugdev"/g' libfprint/60-fprint-autosuspend.rules > debian/libfprint0.udev
+	dh_installudev
