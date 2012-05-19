@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 9), autotools-dev, libtool, automake,
  libusb-1.0-0-dev, libssl-dev, libglib2.0-dev, libmagickcore-dev, libxv-dev,
  libnss3-dev
 Standards-Version: 3.9.2.0
-Homepage: http://reactivated.net/fprint/
+Homepage: http://www.freedesktop.org/wiki/Software/fprint/libfprint
 Section: libs
 
 Package: libfprint-dev
