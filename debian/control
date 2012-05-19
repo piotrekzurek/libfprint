@@ -1,5 +1,6 @@
 Source: libfprint
 Priority: extra
+Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
 Build-Depends: debhelper (>= 9), autotools-dev, libtool, automake,
@@ -7,7 +8,6 @@ Build-Depends: debhelper (>= 9), autotools-dev, libtool, automake,
  libnss3-dev
 Standards-Version: 3.9.3
 Homepage: http://www.freedesktop.org/wiki/Software/fprint/libfprint
-Section: libs
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=fingerforce/libfprint.git
 Vcs-Git: git://anonscm.debian.org/fingerforce/libfprint.git
 
@@ -33,7 +33,6 @@ Description: async fingerprint library of fprint project, development headers
  This package provides development headers.
 
 Package: libfprint0
-Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Pre-Depends: ${misc:Pre-Depends}
