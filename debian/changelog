@@ -1,3 +1,11 @@
+libfprint (1:0.4.0-4-gdfff16f-2) unstable; urgency=low
+
+  * Mark libfprint0 Multi-Arch: same.
+  * Add patch to define ETIME for the kFreeBSD flavours. (Closes:
+    #673704)
+
+ -- Didier Raboud <odyx@debian.org>  Mon, 21 May 2012 10:55:36 +0200
+
 libfprint (1:0.4.0-4-gdfff16f-1) unstable; urgency=low
 
   * New upstream release snapshot.
