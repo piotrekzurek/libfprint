@@ -27,5 +27,5 @@ override_dh_auto_install:
 	done
 
 override_dh_installudev:
-	sed -e 's/$$/, MODE="0664", GROUP="plugdev"/g' libfprint/60-fprint-autosuspend.rules > debian/libfprint0.udev
+	cp libfprint/60-fprint-autosuspend.rules debian/libfprint0.udev
 	dh_installudev
