@@ -1,3 +1,11 @@
+libfprint (1:0.4.0-4-gdfff16f-3) unstable; urgency=low
+
+  * Patch the udev rules creator to:
+    - include all devices; (Closes: #679001)
+    - handle blacklists correctly.
+
+ -- Didier Raboud <odyx@debian.org>  Tue, 26 Jun 2012 10:52:16 +0200
+
 libfprint (1:0.4.0-4-gdfff16f-2) unstable; urgency=low
 
   * Mark libfprint0 Multi-Arch: same.
