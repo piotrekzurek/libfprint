@@ -1,0 +1,25 @@
+From 1f1d14d5fad50a469c1214a394e4a89d7d32101d Mon Sep 17 00:00:00 2001
+From: Didier Raboud <odyx@debian.org>
+Date: Mon, 25 Jun 2012 22:47:26 +0200
+Subject: [PATCH] Fix blacklist handling in udev rules creation.
+
+---
+ libfprint/fprint-list-udev-rules.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libfprint/fprint-list-udev-rules.c b/libfprint/fprint-list-udev-rules.c
+index 182ee10..66b2cc0 100644
+--- a/libfprint/fprint-list-udev-rules.c
++++ b/libfprint/fprint-list-udev-rules.c
+@@ -49,7 +49,7 @@ static void print_driver (struct fp_driver *driver)
+ 	blacklist = 0;
+ 	for (j = 0; blacklist_id_table[j].vendor != 0; j++) {
+ 	    if (driver->id_table[i].vendor == blacklist_id_table[j].vendor &&
+-		driver->id_table[j].product == blacklist_id_table[j].product) {
++		driver->id_table[i].product == blacklist_id_table[j].product) {
+ 		blacklist = 1;
+ 		break;
+ 	    }
+-- 
+1.7.10
+
