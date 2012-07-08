@@ -1,3 +1,9 @@
+libfprint (1:0.4.0-4-gdfff16f-4) unstable; urgency=low
+
+  * Fix libusb global variables FTBFS. (Closes: #680838)
+
+ -- Didier Raboud <odyx@debian.org>  Mon, 09 Jul 2012 00:46:05 +0200
+
 libfprint (1:0.4.0-4-gdfff16f-3) unstable; urgency=low
 
   * Patch the udev rules creator to:
