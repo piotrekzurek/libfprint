@@ -7,7 +7,7 @@ Last-Update: 2012-06-26
 
 --- a/libfprint/fprint-list-udev-rules.c
 +++ b/libfprint/fprint-list-udev-rules.c
-@@ -54,9 +54,6 @@
+@@ -57,9 +57,6 @@
  		break;
  	    }
  	}
@@ -17,15 +17,15 @@ Last-Update: 2012-06-26
  	key = g_strdup_printf ("%04x:%04x", driver->id_table[i].vendor, driver->id_table[i].product);
  
  	if (g_hash_table_lookup (printed, key) != NULL) {
-@@ -66,7 +63,10 @@
- 
- 	g_hash_table_insert (printed, key, GINT_TO_POINTER (1));
+@@ -72,7 +69,10 @@
+ 	if (num_printed == 0)
+ 	    printf ("# %s\n", driver->full_name);
  
 -	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", ATTR{power/control}=\"auto\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
 +	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", ", driver->id_table[i].vendor, driver->id_table[i].product);
 +	if (!blacklist)
 +		printf ("ATTR{power/control}=\"auto\", ");
 +	printf ("MODE=\"0664\", GROUP=\"plugdev\"\n");
+ 	num_printed++;
      }
- }
  

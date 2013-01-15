@@ -7,11 +7,9 @@ Subject: [PATCH] Fix blacklist handling in udev rules creation.
  libfprint/fprint-list-udev-rules.c |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/libfprint/fprint-list-udev-rules.c b/libfprint/fprint-list-udev-rules.c
-index 182ee10..66b2cc0 100644
 --- a/libfprint/fprint-list-udev-rules.c
 +++ b/libfprint/fprint-list-udev-rules.c
-@@ -49,7 +49,7 @@ static void print_driver (struct fp_driver *driver)
+@@ -52,7 +52,7 @@
  	blacklist = 0;
  	for (j = 0; blacklist_id_table[j].vendor != 0; j++) {
  	    if (driver->id_table[i].vendor == blacklist_id_table[j].vendor &&
@@ -20,6 +18,3 @@ index 182ee10..66b2cc0 100644
  		blacklist = 1;
  		break;
  	    }
--- 
-1.7.10
-

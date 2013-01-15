@@ -8,9 +8,9 @@ Last-Update: 2012-05-21
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/libfprint/drivers/uru4000.c
 +++ b/libfprint/drivers/uru4000.c
-@@ -29,6 +29,10 @@
+@@ -32,6 +32,10 @@
  
- #include <fp_internal.h>
+ #include "driver_ids.h"
  
 +#ifndef ETIME
 +#define ETIME ETIMEDOUT /* For kFreeBSD */
@@ -21,9 +21,9 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  #define USB_RQ			0x04
 --- a/libfprint/drivers/vfs101.c
 +++ b/libfprint/drivers/vfs101.c
-@@ -25,6 +25,10 @@
+@@ -27,6 +27,10 @@
  
- #include <fp_internal.h>
+ #include "driver_ids.h"
  
 +#ifndef ETIME
 +#define ETIME ETIMEDOUT /* For kFreeBSD */
