@@ -291,25 +291,25 @@ void fpi_log(enum fpi_log_level level, const char *component,
 #ifndef ENABLE_DEBUG_LOGGING
 	if (!log_level)
 		return;
-	if (level == LOG_LEVEL_WARNING && log_level < 2)
+	if (level == FPRINT_LOG_LEVEL_WARNING && log_level < 2)
 		return;
-	if (level == LOG_LEVEL_INFO && log_level < 3)
+	if (level == FPRINT_LOG_LEVEL_INFO && log_level < 3)
 		return;
 #endif
 
 	switch (level) {
-	case LOG_LEVEL_INFO:
+	case FPRINT_LOG_LEVEL_INFO:
 		prefix = "info";
 		break;
-	case LOG_LEVEL_WARNING:
+	case FPRINT_LOG_LEVEL_WARNING:
 		stream = stderr;
 		prefix = "warning";
 		break;
-	case LOG_LEVEL_ERROR:
+	case FPRINT_LOG_LEVEL_ERROR:
 		stream = stderr;
 		prefix = "error";
 		break;
-	case LOG_LEVEL_DEBUG:
+	case FPRINT_LOG_LEVEL_DEBUG:
 		stream = stderr;
 		prefix = "debug";
 		break;
@@ -355,6 +355,9 @@ static struct fp_img_driver * const img_drivers[] = {
 #ifdef ENABLE_AES2501
 	&aes2501_driver,
 #endif
+#ifdef ENABLE_AES2550
+	&aes2550_driver,
+#endif
 #ifdef ENABLE_URU4000
 	&uru4000_driver,
 #endif
@@ -368,13 +371,22 @@ static struct fp_img_driver * const img_drivers[] = {
 #ifdef ENABLE_AES1610
 	&aes1610_driver,
 #endif
+#ifdef ENABLE_AES1660
+	&aes1660_driver,
+#endif
+#ifdef ENABLE_AES2660
+	&aes2660_driver,
+#endif
 #ifdef ENABLE_VFS101
 	&vfs101_driver,
 #endif
-/*#ifdef ENABLE_UPEKTC
+#ifdef ENABLE_VFS301
+	&vfs301_driver,
+#endif
+#ifdef ENABLE_UPEKTC
 	&upektc_driver,
 #endif
-#ifdef ENABLE_FDU2000
+/*#ifdef ENABLE_FDU2000
 	&fdu2000_driver,
 #endif
 	*/

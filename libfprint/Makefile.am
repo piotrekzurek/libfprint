@@ -4,15 +4,19 @@ MOSTLYCLEANFILES = $(udev_rules_DATA)
 
 UPEKE2_SRC = drivers/upeke2.c
 UPEKTS_SRC = drivers/upekts.c
-UPEKTC_SRC = drivers/upektc.c
+UPEKTC_SRC = drivers/upektc.c drivers/upektc.h
 UPEKSONLY_SRC = drivers/upeksonly.c
 URU4000_SRC = drivers/uru4000.c
 AES1610_SRC = drivers/aes1610.c
+AES1660_SRC = drivers/aes1660.c drivers/aes1660.h
 AES2501_SRC = drivers/aes2501.c drivers/aes2501.h
+AES2550_SRC = drivers/aes2550.c drivers/aes2550.h
+AES2660_SRC = drivers/aes2660.c drivers/aes2660.h
 AES4000_SRC = drivers/aes4000.c
 FDU2000_SRC = drivers/fdu2000.c
 VCOM5S_SRC = drivers/vcom5s.c
 VFS101_SRC = drivers/vfs101.c
+VFS301_SRC = drivers/vfs301.c drivers/vfs301_proto.c  drivers/vfs301_proto.h drivers/vfs301_proto_fragments.h
 
 EXTRA_DIST = \
 	$(UPEKE2_SRC)		\
@@ -21,14 +25,22 @@ EXTRA_DIST = \
 	$(UPEKSONLY_SRC)	\
 	$(URU4000_SRC)		\
 	$(AES1610_SRC)		\
+	$(AES1660_SRC)		\
 	$(AES2501_SRC)		\
+	$(AES2550_SRC)		\
+	$(AES2660_SRC)		\
 	$(AES4000_SRC)		\
 	$(FDU2000_SRC)		\
 	$(VCOM5S_SRC)		\
 	$(VFS101_SRC)		\
+	$(VFS301_SRC)		\
+	drivers/aesx660.c	\
+	drivers/aesx660.h	\
+	drivers/driver_ids.h	\
 	aeslib.c aeslib.h	\
 	imagemagick.c		\
-	gdkpixbuf.c
+	gdkpixbuf.c		\
+	60-fprint-autosuspend.rules
 
 DRIVER_SRC =
 OTHER_SRC =
@@ -79,10 +91,11 @@ fprint_list_udev_rules_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(L
 fprint_list_udev_rules_LDADD = $(builddir)/libfprint.la
 
 udev_rules_DATA = 60-fprint-autosuspend.rules
-udev_rulesdir = $(libdir)/udev/rules.d/
 
+if ENABLE_UDEV_RULES
 $(udev_rules_DATA): fprint-list-udev-rules
 	$(builddir)/fprint-list-udev-rules > $@
+endif
 
 if ENABLE_UPEKE2
 DRIVER_SRC += $(UPEKE2_SRC)
@@ -96,9 +109,9 @@ if ENABLE_UPEKSONLY
 DRIVER_SRC += $(UPEKSONLY_SRC)
 endif
 
-#if ENABLE_UPEKTC
-#DRIVER_SRC += $(UPEKTC_SRC)
-#endif
+if ENABLE_UPEKTC
+DRIVER_SRC += $(UPEKTC_SRC)
+endif
 
 if ENABLE_URU4000
 DRIVER_SRC += $(URU4000_SRC)
@@ -116,8 +129,20 @@ if ENABLE_AES1610
 DRIVER_SRC += $(AES1610_SRC)
 endif
 
+if ENABLE_AES1660
+DRIVER_SRC += $(AES1660_SRC)
+endif
+
 if ENABLE_AES2501
 DRIVER_SRC += $(AES2501_SRC)
+endif
+
+if ENABLE_AES2550
+DRIVER_SRC += $(AES2550_SRC)
+endif
+
+if ENABLE_AES2660
+DRIVER_SRC += $(AES2660_SRC)
 endif
 
 if ENABLE_AES4000
@@ -126,6 +151,10 @@ endif
 
 if ENABLE_VFS101
 DRIVER_SRC += $(VFS101_SRC)
+endif
+
+if ENABLE_VFS301
+DRIVER_SRC += $(VFS301_SRC)
 endif
 
 if REQUIRE_IMAGEMAGICK
@@ -142,6 +171,10 @@ endif
 
 if REQUIRE_AESLIB
 OTHER_SRC += aeslib.c aeslib.h
+endif
+
+if REQUIRE_AESX660
+OTHER_SRC += drivers/aesx660.c drivers/aesx660.h
 endif
 
 libfprint_la_SOURCES =	\

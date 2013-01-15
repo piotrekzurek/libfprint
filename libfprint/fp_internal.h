@@ -28,15 +28,17 @@
 
 #include <fprint.h>
 
+#define array_n_elements(array) (sizeof(array) / sizeof(array[0]))
+
 #define container_of(ptr, type, member) ({                      \
         const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
         (type *)( (char *)__mptr - offsetof(type,member) );})
 
 enum fpi_log_level {
-	LOG_LEVEL_DEBUG,
-	LOG_LEVEL_INFO,
-	LOG_LEVEL_WARNING,
-	LOG_LEVEL_ERROR,
+	FPRINT_LOG_LEVEL_DEBUG,
+	FPRINT_LOG_LEVEL_INFO,
+	FPRINT_LOG_LEVEL_WARNING,
+	FPRINT_LOG_LEVEL_ERROR,
 };
 
 void fpi_log(enum fpi_log_level, const char *component, const char *function,
@@ -53,14 +55,14 @@ void fpi_log(enum fpi_log_level, const char *component, const char *function,
 #endif
 
 #ifdef ENABLE_DEBUG_LOGGING
-#define fp_dbg(fmt...) _fpi_log(LOG_LEVEL_DEBUG, fmt)
+#define fp_dbg(fmt...) _fpi_log(FPRINT_LOG_LEVEL_DEBUG, fmt)
 #else
 #define fp_dbg(fmt...)
 #endif
 
-#define fp_info(fmt...) _fpi_log(LOG_LEVEL_INFO, fmt)
-#define fp_warn(fmt...) _fpi_log(LOG_LEVEL_WARNING, fmt)
-#define fp_err(fmt...) _fpi_log(LOG_LEVEL_ERROR, fmt)
+#define fp_info(fmt...) _fpi_log(FPRINT_LOG_LEVEL_INFO, fmt)
+#define fp_warn(fmt...) _fpi_log(FPRINT_LOG_LEVEL_WARNING, fmt)
+#define fp_err(fmt...) _fpi_log(FPRINT_LOG_LEVEL_ERROR, fmt)
 
 #ifndef NDEBUG
 #define BUG_ON(condition) \
@@ -158,7 +160,7 @@ enum fp_imgdev_enroll_state {
 
 enum fp_imgdev_verify_state {
 	IMG_VERIFY_STATE_NONE = 0,
-	IMG_VERIFY_STATE_ACTIVATING 
+	IMG_VERIFY_STATE_ACTIVATING
 };
 
 struct fp_img_dev {
@@ -253,8 +255,17 @@ extern struct fp_img_driver uru4000_driver;
 #ifdef ENABLE_AES1610
 extern struct fp_img_driver aes1610_driver;
 #endif
+#ifdef ENABLE_AES1660
+extern struct fp_img_driver aes1660_driver;
+#endif
 #ifdef ENABLE_AES2501
 extern struct fp_img_driver aes2501_driver;
+#endif
+#ifdef ENABLE_AES2550
+extern struct fp_img_driver aes2550_driver;
+#endif
+#ifdef ENABLE_AES2660
+extern struct fp_img_driver aes2660_driver;
 #endif
 #ifdef ENABLE_AES4000
 extern struct fp_img_driver aes4000_driver;
@@ -267,6 +278,9 @@ extern struct fp_img_driver vcom5s_driver;
 #endif
 #ifdef ENABLE_VFS101
 extern struct fp_img_driver vfs101_driver;
+#endif
+#ifdef ENABLE_VFS301
+extern struct fp_img_driver vfs301_driver;
 #endif
 
 extern libusb_context *fpi_usb_ctx;
@@ -325,8 +339,8 @@ struct fp_minutiae {
 };
 
 /* bit values for fp_img.flags */
-#define FP_IMG_V_FLIPPED 		(1<<0)
-#define FP_IMG_H_FLIPPED 		(1<<1)
+#define FP_IMG_V_FLIPPED	(1<<0)
+#define FP_IMG_H_FLIPPED	(1<<1)
 #define FP_IMG_COLORS_INVERTED	(1<<2)
 #define FP_IMG_BINARIZED_FORM	(1<<3)
 
@@ -354,7 +368,7 @@ int fpi_img_compare_print_data(struct fp_print_data *enrolled_print,
 	struct fp_print_data *new_print);
 int fpi_img_compare_print_data_to_gallery(struct fp_print_data *print,
 	struct fp_print_data **gallery, int match_threshold, size_t *match_offset);
-struct fp_img *fpi_im_resize(struct fp_img *img, unsigned int factor);
+struct fp_img *fpi_im_resize(struct fp_img *img, unsigned int w_factor, unsigned int h_factor);
 
 /* polling and timeouts */
 

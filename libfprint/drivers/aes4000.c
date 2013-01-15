@@ -27,6 +27,8 @@
 #include <aeslib.h>
 #include <fp_internal.h>
 
+#include "driver_ids.h"
+
 #define CTRL_TIMEOUT	1000
 #define EP_IN			(1 | LIBUSB_ENDPOINT_IN)
 #define EP_OUT			(2 | LIBUSB_ENDPOINT_OUT)
@@ -153,7 +155,7 @@ static void img_cb(struct libusb_transfer *transfer)
 
 	/* FIXME: this is an ugly hack to make the image big enough for NBIS
 	 * to process reliably */
-	img = fpi_im_resize(tmp, ENLARGE_FACTOR);
+	img = fpi_im_resize(tmp, ENLARGE_FACTOR, ENLARGE_FACTOR);
 	fp_img_free(tmp);
 	fpi_imgdev_image_captured(dev, img);
 
@@ -249,7 +251,7 @@ static const struct usb_id id_table[] = {
 
 struct fp_img_driver aes4000_driver = {
 	.driver = {
-		.id = 3,
+		.id = AES4000_ID,
 		.name = FP_COMPONENT,
 		.full_name = "AuthenTec AES4000",
 		.id_table = id_table,
