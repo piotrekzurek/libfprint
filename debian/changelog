@@ -1,3 +1,19 @@
+libfprint (1:0.5.0-1) experimental; urgency=low
+
+  * New 0.5.0 upstream release.
+
+  [ Didier Raboud ]
+  * Refresh all patches for 0.5.0
+    - Drop fix-libusb-global-variables-FTBFS.patch implemented upstream.
+  * Backport two upstream hotfixes for uru4000:
+    - uru4000: fix race condition on waiting power up irq
+    - uru4000: fix cancelling of imaging from error callback
+
+  [ Luca Capello ]
+  * Apply udev rules at install time with udevadm --trigger (Closes: #683863)
+
+ -- Didier Raboud <odyx@debian.org>  Sat, 02 Mar 2013 18:52:25 +0100
+
 libfprint (1:0.4.0-4-gdfff16f-4) unstable; urgency=low
 
   * Fix libusb global variables FTBFS. (Closes: #680838)
