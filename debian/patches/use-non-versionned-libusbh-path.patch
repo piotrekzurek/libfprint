@@ -6,7 +6,7 @@ Author: Didier Raboud <odyx@debian.org>
 Last-Update: 2013-03-03
 --- a/libfprint/drivers/vfs301.c
 +++ b/libfprint/drivers/vfs301.c
-@@ -31,7 +31,7 @@
+@@ -28,7 +28,7 @@
  #include <stdio.h>
  #include <assert.h>
  #include <stdlib.h>

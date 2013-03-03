@@ -34,14 +34,22 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  #define EP_OUT(n)	(n | LIBUSB_ENDPOINT_OUT)
 --- a/libfprint/drivers/vfs301.c
 +++ b/libfprint/drivers/vfs301.c
-@@ -21,6 +21,10 @@
+@@ -21,6 +21,7 @@
  
  #define FP_COMPONENT "vfs301"
+ 
++
+ #include <errno.h>
+ #include <signal.h>
+ #include <string.h>
+@@ -36,6 +37,10 @@
+ 
+ #include "driver_ids.h"
  
 +#ifndef ETIME
 +#define ETIME ETIMEDOUT /* For kFreeBSD */
 +#endif
 +
- #include <errno.h>
- #include <signal.h>
- #include <string.h>
+ /************************** GENERIC STUFF *************************************/
+ 
+ /* Callback of asynchronous sleep */
