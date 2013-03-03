@@ -3,7 +3,7 @@ Author: Steven Chamberlain <steven@pyro.eu.org>
 Bug-Debian: http://bugs.debian.org/673704
 Forwarded: not-yet
 Reviewed-by: Didier Raboud <odyx@debian.org>
-Last-Update: 2012-05-21
+Last-Update: 2013-03-03
 ---
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/libfprint/drivers/uru4000.c
@@ -32,3 +32,16 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  /* Input-Output usb endpoint */
  #define EP_IN(n)	(n | LIBUSB_ENDPOINT_IN)
  #define EP_OUT(n)	(n | LIBUSB_ENDPOINT_OUT)
+--- a/libfprint/drivers/vfs301.c
++++ b/libfprint/drivers/vfs301.c
+@@ -21,6 +21,10 @@
+ 
+ #define FP_COMPONENT "vfs301"
+ 
++#ifndef ETIME
++#define ETIME ETIMEDOUT /* For kFreeBSD */
++#endif
++
+ #include <errno.h>
+ #include <signal.h>
+ #include <string.h>
