@@ -1,3 +1,13 @@
+libfprint (1:0.5.0-2) experimental; urgency=low
+
+  * Patch vfs301 driver to look for libusb.h without the versionned
+    path, hopefully fixes the kFreeBSD FTBFS.
+  * Bump Standards-Version to 3.9.4 without changes needed.
+  * Only execute the udevadm commands if udevadm is in the script path,
+    allows seamless install in chroots without udev and non-Linux.
+
+ -- Didier Raboud <odyx@debian.org>  Sun, 03 Mar 2013 12:58:41 +0100
+
 libfprint (1:0.5.0-1) experimental; urgency=low
 
   * New 0.5.0 upstream release.
