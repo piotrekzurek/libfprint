@@ -6,3 +6,4 @@ u8a87ba4-uru4000-fix-cancelling-of-imaging-from-error-callbac.patch
 kFreeBSD_FTBFS_add_ETIME_definition.patch
 udev-rules-creation-add-Debian-specifics.patch
 Fix-blacklist-handling-in-udev-rules-creation.patch
+use-non-versionned-libusbh-path.patch
