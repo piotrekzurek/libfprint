@@ -1,3 +1,9 @@
+libfprint (1:0.5.0-3) experimental; urgency=low
+
+  * Update kFreeBSD ETIME patch to also correct the vfs301 driver.
+
+ -- Didier Raboud <odyx@debian.org>  Sun, 03 Mar 2013 13:56:16 +0100
+
 libfprint (1:0.5.0-2) experimental; urgency=low
 
   * Patch vfs301 driver to look for libusb.h without the versionned
