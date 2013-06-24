@@ -1,0 +1,26 @@
+From b6c2f72400a15873978717875894854e1136e428 Mon Sep 17 00:00:00 2001
+From: Jeremy Bicha <jbicha@ubuntu.com>
+Date: Sat, 20 Apr 2013 11:33:17 -0400
+Subject: [PATCH] build: Fix underlinking against glib
+
+https://bugs.freedesktop.org/show_bug.cgi?id=63755
+---
+ libfprint/Makefile.am | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libfprint/Makefile.am b/libfprint/Makefile.am
+index 7a16782..4dee301 100644
+--- a/libfprint/Makefile.am
++++ b/libfprint/Makefile.am
+@@ -88,7 +88,7 @@ libfprint_la_LIBADD = -lm $(LIBUSB_LIBS) $(GLIB_LIBS) $(CRYPTO_LIBS)
+ 
+ fprint_list_udev_rules_SOURCES = fprint-list-udev-rules.c
+ fprint_list_udev_rules_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(IMAGEMAGICK_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
+-fprint_list_udev_rules_LDADD = $(builddir)/libfprint.la
++fprint_list_udev_rules_LDADD = $(builddir)/libfprint.la $(GLIB_LIBS)
+ 
+ udev_rules_DATA = 60-fprint-autosuspend.rules
+ 
+-- 
+1.8.1.2
+
