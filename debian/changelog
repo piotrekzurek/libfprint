@@ -1,3 +1,14 @@
+libfprint (1:0.5.0-6) unstable; urgency=low
+
+  [ Jeremy Bicha ]
+  * Fix underlinking against glib - thanks to Julian Taylor
+   (Closes: #710381, #713466) 
+
+  [ Didier Raboud ]
+  * Run udevadm trigger on 147e:2020 too
+
+ -- Didier Raboud <odyx@debian.org>  Mon, 24 Jun 2013 11:24:43 +0200
+
 libfprint (1:0.5.0-5) unstable; urgency=low
 
   * Upload to unstable with two more backports from upstream:
