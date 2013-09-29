@@ -7,7 +7,7 @@ Last-Update: 2012-06-26
 
 --- a/libfprint/fprint-list-udev-rules.c
 +++ b/libfprint/fprint-list-udev-rules.c
-@@ -57,9 +57,6 @@
+@@ -59,9 +59,6 @@
  		break;
  	    }
  	}
@@ -17,7 +17,7 @@ Last-Update: 2012-06-26
  	key = g_strdup_printf ("%04x:%04x", driver->id_table[i].vendor, driver->id_table[i].product);
  
  	if (g_hash_table_lookup (printed, key) != NULL) {
-@@ -72,7 +69,10 @@
+@@ -74,7 +71,10 @@
  	if (num_printed == 0)
  	    printf ("# %s\n", driver->full_name);
  
