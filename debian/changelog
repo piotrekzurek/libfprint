@@ -1,3 +1,11 @@
+libfprint (1:0.5.1-1) unstable; urgency=low
+
+  * New 0.5.1 upstream release:
+    - Update patches list for 0.5.1, drop 6 patches incorporated or
+      backported from upstream, refresh one.
+
+ -- Didier Raboud <odyx@debian.org>  Sun, 29 Sep 2013 13:41:22 +0200
+
 libfprint (1:0.5.0-6) unstable; urgency=low
 
   [ Jeremy Bicha ]
