@@ -30,6 +30,8 @@ static const struct usb_id whitelist_id_table[] = {
 
 static const struct usb_id blacklist_id_table[] = {
     { .vendor = 0x0483, .product = 0x2016 },
+    /* https://bugs.freedesktop.org/show_bug.cgi?id=66659 */
+    { .vendor = 0x045e, .product = 0x00bb },
     { 0, 0, 0 },
 };
 
@@ -52,7 +54,7 @@ static void print_driver (struct fp_driver *driver)
 	blacklist = 0;
 	for (j = 0; blacklist_id_table[j].vendor != 0; j++) {
 	    if (driver->id_table[i].vendor == blacklist_id_table[j].vendor &&
-		driver->id_table[j].product == blacklist_id_table[j].product) {
+		driver->id_table[i].product == blacklist_id_table[j].product) {
 		blacklist = 1;
 		break;
 	    }

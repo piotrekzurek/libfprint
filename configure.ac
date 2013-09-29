@@ -1,8 +1,8 @@
-AC_INIT([libfprint], [0.5.0])
+AC_INIT([libfprint], [0.5.1])
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz check-news])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([libfprint/core.c])
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 
 # Enable silent build when available (Automake 1.11)
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -156,7 +156,7 @@ PKG_CHECK_MODULES(CRYPTO, nss)
 AC_SUBST(CRYPTO_CFLAGS)
 AC_SUBST(CRYPTO_LIBS)
 
-PKG_CHECK_MODULES(GLIB, "glib-2.0")
+PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.28])
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
@@ -172,6 +172,10 @@ AC_ARG_ENABLE(udev-rules,
 	esac],
 	[ENABLE_UDEV_RULES=yes]) dnl Default value
 AM_CONDITIONAL(ENABLE_UDEV_RULES, test x$ENABLE_UDEV_RULES = "xyes")
+
+if test $ENABLE_UDEV_RULES = no && test -d .git/ ; then
+	AC_MSG_ERROR(--disable-udev-rules can only be used when building from tarballs)
+fi
 
 AC_ARG_WITH(udev-rules-dir,
 	    AS_HELP_STRING([--with-udev-rules-dir=DIR],[Installation path for udev rules @<:@auto@:>@]),
@@ -260,7 +264,7 @@ fi
 # Restore gnu89 inline semantics on gcc 4.3 and newer
 saved_cflags="$CFLAGS"
 CFLAGS="$CFLAGS -fgnu89-inline"
-AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]), inline_cflags="-fgnu89-inline", inline_cflags="")
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[]])], inline_cflags="-fgnu89-inline", inline_cflags="")
 CFLAGS="$saved_cflags"
 
 AC_DEFINE([API_EXPORTED], [__attribute__((visibility("default")))], [Default visibility])

@@ -789,14 +789,17 @@ static void imaging_complete(struct fpi_ssm *ssm)
 	int r = ssm->error;
 	fpi_ssm_free(ssm);
 
+	/* Report error before exiting imaging loop - the error handler
+	 * can request state change, which needs to be postponed to end of
+	 * this function. */
+	if (r)
+		fpi_imgdev_session_error(dev, r);
+
 	g_free(urudev->img_data);
 	urudev->img_data = NULL;
 
 	libusb_free_transfer(urudev->img_transfer);
 	urudev->img_transfer = NULL;
-
-	if (r)
-		fpi_imgdev_session_error(dev, r);
 
 	r = execute_state_change(dev);
 	if (r)
@@ -994,16 +997,19 @@ static void init_scanpwr_irq_cb(struct fp_img_dev *dev, int status,
 	uint16_t type, void *user_data)
 {
 	struct fpi_ssm *ssm = user_data;
+	struct uru4k_dev *urudev = dev->priv;
 
 	if (status)
 		fpi_ssm_mark_aborted(ssm, status);
 	else if (type != IRQDATA_SCANPWR_ON)
 		fp_dbg("ignoring interrupt");
-	else if (ssm->cur_state != INIT_AWAIT_SCAN_POWER)
-		fp_err("ignoring scanpwr interrupt due to being in wrong state %d",
-			ssm->cur_state);
-	else
+	else if (ssm->cur_state != INIT_AWAIT_SCAN_POWER) {
+		fp_dbg("early scanpwr interrupt");
+		urudev->scanpwr_irq_timeouts = -1;
+	} else {
+		fp_dbg("late scanpwr interrupt");
 		fpi_ssm_next_state(ssm);
+	}
 }
 
 static void init_scanpwr_timeout(void *user_data)
@@ -1053,14 +1059,21 @@ static void init_run_state(struct fpi_ssm *ssm)
 			fpi_ssm_next_state(ssm);
 		break;
 	case INIT_POWERUP: ;
+		if (!IRQ_HANDLER_IS_RUNNING(urudev)) {
+			fpi_ssm_mark_aborted(ssm, -EIO);
+			break;
+		}
+		urudev->irq_cb_data = ssm;
+		urudev->irq_cb = init_scanpwr_irq_cb;
+
 		struct fpi_ssm *powerupsm = fpi_ssm_new(dev->dev, powerup_run_state,
 			POWERUP_NUM_STATES);
 		powerupsm->priv = dev;
 		fpi_ssm_start_subsm(ssm, powerupsm);
 		break;
 	case INIT_AWAIT_SCAN_POWER:
-		if (!IRQ_HANDLER_IS_RUNNING(urudev)) {
-			fpi_ssm_mark_aborted(ssm, -EIO);
+		if (urudev->scanpwr_irq_timeouts < 0) {
+			fpi_ssm_next_state(ssm);
 			break;
 		}
 
@@ -1073,13 +1086,12 @@ static void init_run_state(struct fpi_ssm *ssm)
 			fpi_ssm_mark_aborted(ssm, -ETIME);
 			break;
 		}
-
-		urudev->irq_cb_data = ssm;
-		urudev->irq_cb = init_scanpwr_irq_cb;
 		break;
 	case INIT_DONE:
-		fpi_timeout_cancel(urudev->scanpwr_irq_timeout);
-		urudev->scanpwr_irq_timeout = NULL;
+		if (urudev->scanpwr_irq_timeout) {
+			fpi_timeout_cancel(urudev->scanpwr_irq_timeout);
+			urudev->scanpwr_irq_timeout = NULL;
+		}
 		urudev->irq_cb_data = NULL;
 		urudev->irq_cb = NULL;
 		fpi_ssm_next_state(ssm);
