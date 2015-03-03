@@ -1,0 +1,25 @@
+From 45fb6d790815eec3d9e08a9e459a325fbb9addc0 Mon Sep 17 00:00:00 2001
+From: Carlos Olmedo Escobar <carlos.olmedo.e@gmail.com>
+Date: Fri, 6 Feb 2015 17:22:16 +0100
+Subject: [PATCH 2/2] vfs101: Logical conjunction always evaluates to false.
+
+---
+ libfprint/drivers/vfs101.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libfprint/drivers/vfs101.c b/libfprint/drivers/vfs101.c
+index db0b06e..84624eb 100644
+--- a/libfprint/drivers/vfs101.c
++++ b/libfprint/drivers/vfs101.c
+@@ -186,7 +186,7 @@ static int result_codes[2][RESULT_COUNT] =
+ static int result_code(struct fp_img_dev *dev, int result)
+ {
+ 	/* Check result value */
+-	if (result < 0 && result >= RESULT_COUNT)
++	if (result < 0 || result >= RESULT_COUNT)
+ 		return result;
+ 
+ 	/* Return result code */
+-- 
+2.1.4
+
