@@ -12,11 +12,15 @@ AES1660_SRC = drivers/aes1660.c drivers/aes1660.h
 AES2501_SRC = drivers/aes2501.c drivers/aes2501.h
 AES2550_SRC = drivers/aes2550.c drivers/aes2550.h
 AES2660_SRC = drivers/aes2660.c drivers/aes2660.h
+AES3500_SRC = drivers/aes3500.c
 AES4000_SRC = drivers/aes4000.c
 FDU2000_SRC = drivers/fdu2000.c
 VCOM5S_SRC = drivers/vcom5s.c
 VFS101_SRC = drivers/vfs101.c
 VFS301_SRC = drivers/vfs301.c drivers/vfs301_proto.c  drivers/vfs301_proto.h drivers/vfs301_proto_fragments.h
+VFS5011_SRC = drivers/vfs5011.c drivers/vfs5011_proto.h
+UPEKTC_IMG_SRC = drivers/upektc_img.c drivers/upektc_img.h
+ETES603_SRC = drivers/etes603.c
 
 EXTRA_DIST = \
 	$(UPEKE2_SRC)		\
@@ -29,17 +33,22 @@ EXTRA_DIST = \
 	$(AES2501_SRC)		\
 	$(AES2550_SRC)		\
 	$(AES2660_SRC)		\
+	$(AES3500_SRC)		\
 	$(AES4000_SRC)		\
 	$(FDU2000_SRC)		\
 	$(VCOM5S_SRC)		\
 	$(VFS101_SRC)		\
 	$(VFS301_SRC)		\
+	$(VFS5011_SRC)		\
+	$(UPEKTC_IMG_SRC)	\
+	$(ETES603_SRC)		\
 	drivers/aesx660.c	\
 	drivers/aesx660.h	\
+	drivers/aes3k.c 	\
+	drivers/aes3k.h 	\
 	drivers/driver_ids.h	\
 	aeslib.c aeslib.h	\
-	imagemagick.c		\
-	gdkpixbuf.c		\
+	pixman.c		\
 	60-fprint-autosuspend.rules
 
 DRIVER_SRC =
@@ -87,7 +96,7 @@ libfprint_la_LDFLAGS = -version-info @lt_major@:@lt_revision@:@lt_age@
 libfprint_la_LIBADD = -lm $(LIBUSB_LIBS) $(GLIB_LIBS) $(CRYPTO_LIBS)
 
 fprint_list_udev_rules_SOURCES = fprint-list-udev-rules.c
-fprint_list_udev_rules_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(IMAGEMAGICK_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
+fprint_list_udev_rules_CFLAGS = -fvisibility=hidden -I$(srcdir)/nbis/include $(LIBUSB_CFLAGS) $(GLIB_CFLAGS) $(CRYPTO_CFLAGS) $(AM_CFLAGS)
 fprint_list_udev_rules_LDADD = $(builddir)/libfprint.la $(GLIB_LIBS)
 
 udev_rules_DATA = 60-fprint-autosuspend.rules
@@ -145,6 +154,10 @@ if ENABLE_AES2660
 DRIVER_SRC += $(AES2660_SRC)
 endif
 
+if ENABLE_AES3500
+DRIVER_SRC += $(AES3500_SRC)
+endif
+
 if ENABLE_AES4000
 DRIVER_SRC += $(AES4000_SRC)
 endif
@@ -157,14 +170,20 @@ if ENABLE_VFS301
 DRIVER_SRC += $(VFS301_SRC)
 endif
 
-if REQUIRE_IMAGEMAGICK
-OTHER_SRC += imagemagick.c
-libfprint_la_CFLAGS += $(IMAGING_CFLAGS)
-libfprint_la_LIBADD += $(IMAGING_LIBS)
+if ENABLE_VFS5011
+DRIVER_SRC += $(VFS5011_SRC)
 endif
 
-if REQUIRE_GDKPIXBUF
-OTHER_SRC += gdkpixbuf.c
+if ENABLE_UPEKTC_IMG
+DRIVER_SRC += $(UPEKTC_IMG_SRC)
+endif
+
+if ENABLE_ETES603
+DRIVER_SRC += $(ETES603_SRC)
+endif
+
+if REQUIRE_PIXMAN
+OTHER_SRC += pixman.c
 libfprint_la_CFLAGS += $(IMAGING_CFLAGS)
 libfprint_la_LIBADD += $(IMAGING_LIBS)
 endif
@@ -175,6 +194,10 @@ endif
 
 if REQUIRE_AESX660
 OTHER_SRC += drivers/aesx660.c drivers/aesx660.h
+endif
+
+if REQUIRE_AES3K
+OTHER_SRC += drivers/aes3k.c drivers/aes3k.h
 endif
 
 libfprint_la_SOURCES =	\
