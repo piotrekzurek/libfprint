@@ -3,7 +3,7 @@ Description: Tweak the udev rules creator for Debian usage
  ones; mode and group to all.
 Author: Didier Raboud <odyx@debian.org>
 Origin: vendor
-Last-Update: 2012-06-26
+Last-Update: 2015-03-03
 
 --- a/libfprint/fprint-list-udev-rules.c
 +++ b/libfprint/fprint-list-udev-rules.c
@@ -21,10 +21,10 @@ Last-Update: 2012-06-26
  	if (num_printed == 0)
  	    printf ("# %s\n", driver->full_name);
  
--	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", ATTR{power/control}=\"auto\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
+-	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
 +	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", ", driver->id_table[i].vendor, driver->id_table[i].product);
 +	if (!blacklist)
-+		printf ("ATTR{power/control}=\"auto\", ");
++		printf ("TEST==\"power/control\", ATTR{power/control}=\"auto\", ");
 +	printf ("MODE=\"0664\", GROUP=\"plugdev\"\n");
  	num_printed++;
      }
