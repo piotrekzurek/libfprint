@@ -1,4 +1,6 @@
 libfprint.so.0 libfprint0 #MINVER#
+ fp_async_capture_start@Base 1:0.6.0
+ fp_async_capture_stop@Base 1:0.6.0
  fp_async_dev_close@Base 1:0.4.0
  fp_async_dev_open@Base 1:0.4.0
  fp_async_enroll_start@Base 1:0.4.0
