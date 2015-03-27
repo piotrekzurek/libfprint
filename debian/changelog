@@ -1,3 +1,30 @@
+libfprint (1:0.6.0-1) experimental; urgency=medium
+
+  * New 0.6.0 upstream release:
+    * Drivers:
+      - Reduce duplication between AES3500 and AES4000 drivers and add support
+        for AES3500 device
+      - Add support for UPEK 147e:2020 and Upek Eikon 2 devices
+      - Add EgisTec ES603 driver
+      - Add VFS5011 driver (Closes: #713815)
+      - Always perform 5 scans for image enrollment
+      - Better verification with AES1660 driver
+      - Better verification for a number of AES drivers
+    * Library:
+      - Always use Pixman for image manipulation, gdk-pixbuf and ImageMagick
+        are not supported any more.
+    * Udev rules:
+      - Fix warning when USB hub or system does not support power management
+
+  [ Didier Raboud ]
+  * Refresh Debian patches
+  * Backport two upstream patches:
+    - imgdev: fix enum mismatch for dev_change_state() call
+    - vfs101: Logical conjunction always evaluates to false
+  * Add two new 0.6.0 symbols
+
+ -- Didier Raboud <odyx@debian.org>  Fri, 27 Mar 2015 08:33:53 +0100
+
 libfprint (1:0.5.1-1) unstable; urgency=low
 
   * New 0.5.1 upstream release:
