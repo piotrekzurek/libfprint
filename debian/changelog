@@ -1,3 +1,10 @@
+libfprint (1:0.6.0-2) unstable; urgency=low
+
+  * Upload to unstable
+  * Add simple gbp.conf to help with releasing
+
+ -- Didier Raboud <odyx@debian.org>  Sun, 03 May 2015 15:19:19 +0200
+
 libfprint (1:0.6.0-1) experimental; urgency=medium
 
   * New 0.6.0 upstream release:
