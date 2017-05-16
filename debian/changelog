@@ -4,6 +4,8 @@ libfprint (1:0.7.0-1) UNRELEASED; urgency=medium
   * New 0.7.0 upstream release:
     - Add VFS0050 driver (Closes: #843626)
     - Refresh the patches, drop all the upstreamed ones
+  * Bump debhelper compatibility to 10 and rely on dh_autoreconf instead of
+    calling the autotools explicitly
   * debian/control:
     - Bump Standards-Version to 3.9.8 (no further changes)
     - Use https for the Homepage and Vcs-* fields
@@ -12,7 +14,7 @@ libfprint (1:0.7.0-1) UNRELEASED; urgency=medium
       instead, ImageMagick is not supported since 0.6.0
   * Add debian/watch file
 
- -- Laurent Bigonville <bigon@debian.org>  Tue, 16 May 2017 12:09:22 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 16 May 2017 12:47:16 +0200
 
 libfprint (1:0.6.0-2) unstable; urgency=low
 

@@ -11,12 +11,6 @@ override_dh_clean:
 	rm -f debian/libfprint0.udev
 
 override_dh_auto_configure:
-	# From autogen.sh
-	libtoolize --copy --force
-	aclocal
-	autoheader
-	autoconf
-	automake -a -c
 	dh_auto_configure -- $(CONFIG_ARGS)
 
 override_dh_auto_install:
