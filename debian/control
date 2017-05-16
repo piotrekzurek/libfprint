@@ -6,7 +6,7 @@ Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
 Build-Depends: debhelper (>= 9), autotools-dev, libtool, automake,
  libusb-1.0-0-dev, libssl-dev, libglib2.0-dev, libmagickcore-dev, libxv-dev,
  libnss3-dev
-Standards-Version: 3.9.4
+Standards-Version: 3.9.8
 Homepage: http://www.freedesktop.org/wiki/Software/fprint/libfprint
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=fingerforce/libfprint.git
 Vcs-Git: git://anonscm.debian.org/fingerforce/libfprint.git
