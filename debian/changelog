@@ -6,8 +6,9 @@ libfprint (1:0.7.0-1) UNRELEASED; urgency=medium
     - Refresh the patches, drop all the upstreamed ones
   * debian/control:
     - Bump Standards-Version to 3.9.8 (no further changes)
+    - Use https for the Homepage and Vcs-* fields
 
- -- Laurent Bigonville <bigon@debian.org>  Tue, 16 May 2017 11:33:22 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 16 May 2017 11:39:37 +0200
 
 libfprint (1:0.6.0-2) unstable; urgency=low
 
