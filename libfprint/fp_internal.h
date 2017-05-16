@@ -305,6 +305,9 @@ extern struct fp_img_driver upektc_img_driver;
 #ifdef ENABLE_ETES603
 extern struct fp_img_driver etes603_driver;
 #endif
+#ifdef ENABLE_VFS0050
+extern struct fp_img_driver vfs0050_driver;
+#endif
 
 extern libusb_context *fpi_usb_ctx;
 extern GSList *opened_devices;
@@ -376,6 +379,7 @@ struct fp_minutiae {
 #define FP_IMG_H_FLIPPED	(1<<1)
 #define FP_IMG_COLORS_INVERTED	(1<<2)
 #define FP_IMG_BINARIZED_FORM	(1<<3)
+#define FP_IMG_PARTIAL		(1<<4)
 
 #define FP_IMG_STANDARDIZATION_FLAGS (FP_IMG_V_FLIPPED | FP_IMG_H_FLIPPED \
 	| FP_IMG_COLORS_INVERTED)
@@ -482,7 +486,12 @@ void fpi_imgdev_deactivate_complete(struct fp_img_dev *imgdev);
 void fpi_imgdev_report_finger_status(struct fp_img_dev *imgdev,
 	gboolean present);
 void fpi_imgdev_image_captured(struct fp_img_dev *imgdev, struct fp_img *img);
+void fpi_imgdev_abort_scan(struct fp_img_dev *imgdev, int result);
 void fpi_imgdev_session_error(struct fp_img_dev *imgdev, int error);
+
+/* utils */
+int fpi_std_sq_dev(const unsigned char *buf, int size);
+int fpi_mean_sq_diff_norm(unsigned char *buf1, unsigned char *buf2, int size);
 
 #endif
 

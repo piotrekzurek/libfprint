@@ -653,7 +653,7 @@ static int action_completed(struct fp_img_dev *dev)
 	struct vfs101_dev *vdev = dev->priv;
 
 	if ((dev->action == IMG_ACTION_ENROLL) &&
-		(vdev->enroll_stage < 1))
+		(vdev->enroll_stage < dev->dev->nr_enroll_stages))
 		/* Enroll not completed, return false */
 		return FALSE;
 
@@ -1504,7 +1504,7 @@ static int dev_open(struct fp_img_dev *dev, unsigned long driver_data)
 	if (r < 0)
 	{
 		/* Interface not claimed, return error */
-		fp_err("could not claim interface 0");
+		fp_err("could not claim interface 0: %s", libusb_error_name(r));
 		return r;
 	}
 

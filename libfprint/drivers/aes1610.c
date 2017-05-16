@@ -30,6 +30,7 @@
 
 #include <libusb.h>
 
+#include <assembling.h>
 #include <aeslib.h>
 #include <fp_internal.h>
 
@@ -66,6 +67,7 @@ static int adjust_gain(unsigned char *buffer, int status);
 #define FRAME_WIDTH	128
 #define FRAME_HEIGHT	8
 #define FRAME_SIZE	(FRAME_WIDTH * FRAME_HEIGHT)
+#define IMAGE_WIDTH	(FRAME_WIDTH + (FRAME_WIDTH / 2))
 /* maximum number of frames to read during a scan */
 /* FIXME reduce substantially */
 #define MAX_FRAMES		350
@@ -78,6 +80,13 @@ struct aes1610_dev {
 	size_t strips_len;
 	gboolean deactivating;
 	uint8_t blanks_count;
+};
+
+static struct fpi_frame_asmbl_ctx assembling_ctx = {
+	.frame_width = FRAME_WIDTH,
+	.frame_height = FRAME_HEIGHT,
+	.image_width = IMAGE_WIDTH,
+	.get_pixel = aes_get_pixel,
 };
 
 typedef void (*aes1610_read_regs_cb)(struct fp_img_dev *dev, int status,
@@ -404,7 +413,7 @@ static unsigned char list_BE_values[10] = {
 /*
  * The different possible values for 0xBD register */
 static unsigned char list_BD_values[10] = {
-	0x48, 0x4B, 0x4F, 0x52, 0x57, 0x59, 0x5B
+	0x28, 0x2b, 0x30, 0x3b, 0x45, 0x49, 0x4B
 };
 
 /*
@@ -425,25 +434,25 @@ static int adjust_gain(unsigned char *buffer, int status)
 			strip_scan_reqs[0].value = 0x6B;
 			strip_scan_reqs[1].value = 0x06;
 			strip_scan_reqs[2].value = 0x35;
-			strip_scan_reqs[3].value = 0x5B;
+			strip_scan_reqs[3].value = 0x4B;
 		}
 		else if (buffer[1] > 0x55) {
 			strip_scan_reqs[0].value = 0x63;
 			strip_scan_reqs[1].value = 0x15;
 			strip_scan_reqs[2].value = 0x35;
-			strip_scan_reqs[3].value = 0x4F;
+			strip_scan_reqs[3].value = 0x3b;
 		}
 		else if (buffer[1] > 0x40 || buffer[16] > 0x19) {
 			strip_scan_reqs[0].value = 0x43;
 			strip_scan_reqs[1].value = 0x13;
 			strip_scan_reqs[2].value = 0x35;
-			strip_scan_reqs[3].value = 0x4B;
+			strip_scan_reqs[3].value = 0x30;
 		}
 		else { // minimum gain needed
 			strip_scan_reqs[0].value = 0x23;
 			strip_scan_reqs[1].value = 0x07;
 			strip_scan_reqs[2].value = 0x35;
-			strip_scan_reqs[3].value = 0x48;
+			strip_scan_reqs[3].value = 0x28;
 		}
 
 		// Now copy this values in capture_reqs
@@ -579,11 +588,14 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer)
 	}
 
 	if (sum > 0) {
-	        /* FIXME: would preallocating strip buffers be a decent optimization? */
-	        stripdata = g_malloc(128 * 4);
-	        memcpy(stripdata, data + 1, 128 * 4);
-	        aesdev->strips = g_slist_prepend(aesdev->strips, stripdata);
-	        aesdev->strips_len++;
+		/* FIXME: would preallocating strip buffers be a decent optimization? */
+		struct fpi_frame *stripe = g_malloc(FRAME_WIDTH * (FRAME_HEIGHT / 2) + sizeof(struct fpi_frame));
+		stripe->delta_x = 0;
+		stripe->delta_y = 0;
+		stripdata = stripe->data;
+		memcpy(stripdata, data + 1, FRAME_WIDTH * (FRAME_HEIGHT / 2));
+		aesdev->strips = g_slist_prepend(aesdev->strips, stripe);
+		aesdev->strips_len++;
 		aesdev->blanks_count = 0;
 	}
 
@@ -609,24 +621,14 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer)
 	/* stop capturing if MAX_FRAMES is reached */
 	if (aesdev->blanks_count > 10 || g_slist_length(aesdev->strips) >= MAX_FRAMES) {
 		struct fp_img *img;
-		unsigned int height, rev_height;
 
 		fp_dbg("sending stop capture.... blanks=%d  frames=%d", aesdev->blanks_count, g_slist_length(aesdev->strips));
 		/* send stop capture bits */
 		aes_write_regv(dev, capture_stop, G_N_ELEMENTS(capture_stop), stub_capture_stop_cb, NULL);
 		aesdev->strips = g_slist_reverse(aesdev->strips);
-		height = aes_calc_delta(aesdev->strips, aesdev->strips_len,
-			FRAME_WIDTH, FRAME_HEIGHT, FALSE);
-		rev_height = aes_calc_delta(aesdev->strips, aesdev->strips_len,
-			FRAME_WIDTH, FRAME_HEIGHT, TRUE);
-		fp_dbg("heights: %d rev: %d", height, rev_height);
-		if (rev_height < height) {
-			fp_dbg("Reversed direction");
-			height = aes_calc_delta(aesdev->strips, aesdev->strips_len,
-				FRAME_WIDTH, FRAME_HEIGHT, FALSE);
-		}
-		img = aes_assemble(aesdev->strips, aesdev->strips_len,
-			FRAME_WIDTH, FRAME_HEIGHT, FRAME_WIDTH + FRAME_WIDTH / 2);
+		fpi_do_movement_estimation(&assembling_ctx, aesdev->strips, aesdev->strips_len);
+		img = fpi_assemble_frames(&assembling_ctx, aesdev->strips, aesdev->strips_len);
+		img->flags |= FP_IMG_PARTIAL;
 		g_slist_free_full(aesdev->strips, g_free);
 		aesdev->strips = NULL;
 		aesdev->strips_len = 0;
@@ -809,7 +811,7 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
 
 	r = libusb_claim_interface(dev->udev, 0);
 	if (r < 0) {
-		fp_err("could not claim interface 0");
+		fp_err("could not claim interface 0: %s", libusb_error_name(r));
 		return r;
 	}
 
@@ -840,9 +842,9 @@ struct fp_img_driver aes1610_driver = {
 	},
 	.flags = 0,
 	.img_height = -1,
-	.img_width = FRAME_WIDTH + FRAME_WIDTH / 2,
+	.img_width = IMAGE_WIDTH,
 
-	.bz3_threshold = 50,
+	.bz3_threshold = 20,
 
 	.open = dev_init,
 	.close = dev_deinit,
