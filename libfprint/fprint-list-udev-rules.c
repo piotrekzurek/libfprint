@@ -25,6 +25,8 @@
 
 static const struct usb_id whitelist_id_table[] = {
     { .vendor = 0x08ff, .product = 0x2810 },
+    /* https://bugzilla.redhat.com/show_bug.cgi?id=1173367 */
+    { .vendor = 0x138a, .product = 0x0017 },
     { 0, 0, 0, },
 };
 
@@ -75,6 +77,7 @@ static void print_driver (struct fp_driver *driver)
 	    printf ("# %s\n", driver->full_name);
 
 	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
+	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n", driver->id_table[i].vendor, driver->id_table[i].product, driver->full_name);
 	num_printed++;
     }
 

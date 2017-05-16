@@ -28,6 +28,7 @@
 
 #include <libusb.h>
 
+#include <assembling.h>
 #include <aeslib.h>
 #include <fp_internal.h>
 
@@ -58,6 +59,7 @@ static void complete_deactivation(struct fp_img_dev *dev);
 #define FRAME_WIDTH		192
 #define FRAME_HEIGHT	16
 #define FRAME_SIZE		(FRAME_WIDTH * FRAME_HEIGHT)
+#define IMAGE_WIDTH		(FRAME_WIDTH + (FRAME_WIDTH / 2))
 /* maximum number of frames to read during a scan */
 /* FIXME reduce substantially */
 #define MAX_FRAMES		150
@@ -70,6 +72,13 @@ struct aes2501_dev {
 	size_t strips_len;
 	gboolean deactivating;
 	int no_finger_cnt;
+};
+
+static struct fpi_frame_asmbl_ctx assembling_ctx = {
+	.frame_width = FRAME_WIDTH,
+	.frame_height = FRAME_HEIGHT,
+	.image_width = IMAGE_WIDTH,
+	.get_pixel = aes_get_pixel,
 };
 
 typedef void (*aes2501_read_regs_cb)(struct fp_img_dev *dev, int status,
@@ -481,21 +490,13 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer)
 		aesdev->no_finger_cnt++;
 		if (aesdev->no_finger_cnt == 3) {
 			struct fp_img *img;
-			unsigned int height, rev_height;
 
 			aesdev->strips = g_slist_reverse(aesdev->strips);
-			height = aes_calc_delta(aesdev->strips, aesdev->strips_len,
-				FRAME_WIDTH, FRAME_HEIGHT, FALSE);
-			rev_height = aes_calc_delta(aesdev->strips, aesdev->strips_len,
-				FRAME_WIDTH, FRAME_HEIGHT, TRUE);
-			fp_dbg("heights: %d rev: %d", height, rev_height);
-			if (rev_height < height) {
-				fp_dbg("Reversed direction");
-				height = aes_calc_delta(aesdev->strips, aesdev->strips_len,
-					FRAME_WIDTH, FRAME_HEIGHT, FALSE);
-			}
-			img = aes_assemble(aesdev->strips, aesdev->strips_len,
-				FRAME_WIDTH, FRAME_HEIGHT, FRAME_WIDTH + FRAME_WIDTH / 2);
+			fpi_do_movement_estimation(&assembling_ctx,
+					aesdev->strips, aesdev->strips_len);
+			img = fpi_assemble_frames(&assembling_ctx,
+						  aesdev->strips, aesdev->strips_len);
+			img->flags |= FP_IMG_PARTIAL;
 			g_slist_free_full(aesdev->strips, g_free);
 			aesdev->strips = NULL;
 			aesdev->strips_len = 0;
@@ -509,7 +510,7 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer)
 	} else {
 		/* obtain next strip */
 		/* FIXME: would preallocating strip buffers be a decent optimization? */
-		struct aes_stripe *stripe = g_malloc(FRAME_WIDTH * FRAME_HEIGHT / 2 + sizeof(struct aes_stripe));
+		struct fpi_frame *stripe = g_malloc(FRAME_WIDTH * FRAME_HEIGHT / 2 + sizeof(struct fpi_frame));
 		stripe->delta_x = 0;
 		stripe->delta_y = 0;
 		stripdata = stripe->data;
@@ -849,7 +850,7 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
 
 	r = libusb_claim_interface(dev->udev, 0);
 	if (r < 0) {
-		fp_err("could not claim interface 0");
+		fp_err("could not claim interface 0: %s", libusb_error_name(r));
 		return r;
 	}
 
@@ -881,7 +882,7 @@ struct fp_img_driver aes2501_driver = {
 	},
 	.flags = 0,
 	.img_height = -1,
-	.img_width = FRAME_WIDTH + FRAME_WIDTH / 2,
+	.img_width = IMAGE_WIDTH,
 
 	.open = dev_init,
 	.close = dev_deinit,
