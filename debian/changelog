@@ -3,8 +3,9 @@ libfprint (1:0.7.0-1) UNRELEASED; urgency=medium
   * Team upload.
   * New 0.7.0 upstream release:
     - Add VFS0050 driver (Closes: #843626)
+    - Refresh the patches, drop all the upstreamed ones
 
- -- Laurent Bigonville <bigon@debian.org>  Tue, 16 May 2017 10:53:55 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 16 May 2017 11:27:16 +0200
 
 libfprint (1:0.6.0-2) unstable; urgency=low
 
