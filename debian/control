@@ -4,7 +4,7 @@ Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
 Build-Depends: debhelper (>= 9), autotools-dev, libtool, automake,
- libusb-1.0-0-dev, libssl-dev, libglib2.0-dev, libmagickcore-dev, libxv-dev,
+ libusb-1.0-0-dev, libglib2.0-dev, libmagickcore-dev, libxv-dev,
  libnss3-dev
 Standards-Version: 3.9.8
 Homepage: https://www.freedesktop.org/wiki/Software/fprint/libfprint
