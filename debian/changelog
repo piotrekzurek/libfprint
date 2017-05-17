@@ -13,8 +13,10 @@ libfprint (1:0.7.0-1) UNRELEASED; urgency=medium
     - Drop libmagickcore-dev build-dep and add libpixman-1-dev
       instead, ImageMagick is not supported since 0.6.0
   * Add debian/watch file
+  * debian/libfprint0.postinst: Add new calls to "udevadm --trigger" to
+    also properly set the permissions on the newest supported readers.
 
- -- Laurent Bigonville <bigon@debian.org>  Tue, 16 May 2017 12:47:16 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 17 May 2017 16:40:52 +0200
 
 libfprint (1:0.6.0-2) unstable; urgency=low
 
