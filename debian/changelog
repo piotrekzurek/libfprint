@@ -1,9 +1,11 @@
-libfprint (1:0.7.0-2) UNRELEASED; urgency=medium
+libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
 
+  * New upstream release
+    - Fix security hole by zero out memory when allocated (Closes: #890827)
   * debian/watch: Update the watch file to point to the freedesktop gitlab
     release page
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 12:45:10 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 12:55:52 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 
