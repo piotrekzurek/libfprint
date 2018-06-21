@@ -28,19 +28,22 @@
 #include "nbis/include/bozorth.h"
 #include "nbis/include/lfs.h"
 
-/** @defgroup img Image operations
+/**
+ * SECTION:img
+ * @title: Image operations
+ *
  * libfprint offers several ways of retrieving images from imaging devices,
  * one example being the fp_dev_img_capture() function. The functions
  * documented below allow you to work with such images.
  *
- * \section img_fmt Image format
+ * # Image format # {#img_fmt}
  * All images are represented as 8-bit greyscale data.
  *
- * \section img_std Image standardization
+ * # Image standardization # {#img_std}
  * In some contexts, images you are provided through libfprint are raw images
  * from the hardware. The orientation of these varies from device-to-device,
  * as does the color scheme (black-on-white or white-on-black?). libfprint
- * provides the fp_img_standardize function to convert images into standard
+ * provides the fp_img_standardize() function to convert images into standard
  * form, which is defined to be: finger flesh as black on white surroundings,
  * natural upright orientation.
  */
@@ -82,9 +85,11 @@ struct fp_img *fpi_img_resize(struct fp_img *img, size_t newsize)
 	return g_realloc(img, sizeof(*img) + newsize);
 }
 
-/** \ingroup img
+/**
+ * fp_img_free:
+ * @img: the image to destroy. If NULL, function simply returns.
+ *
  * Frees an image. Must be called when you are finished working with an image.
- * \param img the image to destroy. If NULL, function simply returns.
  */
 API_EXPORTED void fp_img_free(struct fp_img *img)
 {
@@ -98,43 +103,55 @@ API_EXPORTED void fp_img_free(struct fp_img *img)
 	g_free(img);
 }
 
-/** \ingroup img
+/**
+ * fp_img_get_height:
+ * @img: an image
+ *
  * Gets the pixel height of an image.
- * \param img an image
- * \returns the height of the image
+ *
+ * Returns: the height of the image
  */
 API_EXPORTED int fp_img_get_height(struct fp_img *img)
 {
 	return img->height;
 }
 
-/** \ingroup img
+/**
+ * fp_img_get_width:
+ * @img: an image
+ *
  * Gets the pixel width of an image.
- * \param img an image
- * \returns the width of the image
+ *
+ * Returns: the width of the image
  */
 API_EXPORTED int fp_img_get_width(struct fp_img *img)
 {
 	return img->width;
 }
 
-/** \ingroup img
+/**
+ * fp_img_get_data:
+ * @img: an image
+ *
  * Gets the greyscale data for an image. This data must not be modified or
  * freed, and must not be used after fp_img_free() has been called.
- * \param img an image
- * \returns a pointer to libfprint's internal data for the image
+ *
+ * Returns: a pointer to libfprint's internal data for the image
  */
 API_EXPORTED unsigned char *fp_img_get_data(struct fp_img *img)
 {
 	return img->data;
 }
 
-/** \ingroup img
+/**
+ * fp_img_save_to_file:
+ * @img: the image to save
+ * @path: the path to save the image. Existing files will be overwritten.
+ *
  * A quick convenience function to save an image to a file in
- * <a href="http://netpbm.sourceforge.net/doc/pgm.html">PGM format</a>.
- * \param img the image to save
- * \param path the path to save the image. Existing files will be overwritten.
- * \returns 0 on success, non-zero on error.
+ * [PGM format](http://netpbm.sourceforge.net/doc/pgm.html).
+ *
+ * Returns: 0 on success, non-zero on error.
  */
 API_EXPORTED int fp_img_save_to_file(struct fp_img *img, char *path)
 {
@@ -149,12 +166,14 @@ API_EXPORTED int fp_img_save_to_file(struct fp_img *img, char *path)
 
 	r = fprintf(fd, "P5 %d %d 255\n", img->width, img->height);
 	if (r < 0) {
+		fclose(fd);
 		fp_err("pgm header write failed, error %d", r);
 		return r;
 	}
 
 	r = fwrite(img->data, 1, write_size, fd);
 	if (r < write_size) {
+		fclose(fd);
 		fp_err("short write (%d)", r);
 		return -EIO;
 	}
@@ -209,12 +228,14 @@ static void invert_colors(struct fp_img *img)
 		img->data[i] = 0xff - img->data[i];
 }
 
-/** \ingroup img
- * \ref img_std "Standardizes" an image by normalizing its orientation, colors,
+/**
+ * fp_img_standardize:
+ * @img: the image to standardize
+ *
+ * [Standardizes](libfprint-Image-operations.html#img_std) an image by normalizing its orientation, colors,
  * etc. It is safe to call this multiple times on an image, libfprint keeps
  * track of the work it needs to do to make an image standard and will not
  * perform these operations more than once for a given image.
- * \param img the image to standardize
  */
 API_EXPORTED void fp_img_standardize(struct fp_img *img)
 {
@@ -267,7 +288,7 @@ static void minutiae_to_xyt(struct fp_minutiae *minutiae, int bwidth,
 	xyt->nrows = nmin;
 }
 
-int fpi_img_detect_minutiae(struct fp_img *img)
+static int fpi_img_detect_minutiae(struct fp_img *img)
 {
 	struct fp_minutiae *minutiae;
 	int r;
@@ -419,23 +440,25 @@ int fpi_img_compare_print_data_to_gallery(struct fp_print_data *print,
 	return FP_VERIFY_NO_MATCH;
 }
 
-/** \ingroup img
+/**
+ * fp_img_binarize:
+ * @img: a standardized image
+ *
  * Get a binarized form of a standardized scanned image. This is where the
  * fingerprint image has been "enhanced" and is a set of pure black ridges
  * on a pure white background. Internally, image processing happens on top
  * of the binarized image.
  *
- * The image must have been \ref img_std "standardized" otherwise this function
- * will fail.
+ * The image must have been [standardized](libfprint-Image-operations.html#img_std)
+ * otherwise this function will fail.
  *
  * It is safe to binarize an image and free the original while continuing
  * to use the binarized version.
  *
  * You cannot binarize an image twice.
  *
- * \param img a standardized image
- * \returns a new image representing the binarized form of the original, or
- * NULL on error. Must be freed with fp_img_free() after use.
+ * Returns: a new image representing the binarized form of the original, or
+ * %NULL on error. Must be freed with fp_img_free() after use.
  */
 API_EXPORTED struct fp_img *fp_img_binarize(struct fp_img *img)
 {
@@ -467,15 +490,19 @@ API_EXPORTED struct fp_img *fp_img_binarize(struct fp_img *img)
 	return ret;
 }
 
-/** \ingroup img
+/**
+ * fp_img_get_minutiae:
+ * @img: a standardized image
+ * @nr_minutiae: an output location to store minutiae list length
+ *
  * Get a list of minutiae detected in an image. A minutia point is a feature
  * detected on a fingerprint, typically where ridges end or split.
  * libfprint's image processing code relies upon comparing sets of minutiae,
  * so accurate placement of minutia points is critical for good imaging
  * performance.
  *
- * The image must have been \ref img_std "standardized" otherwise this function
- * will fail.
+ * The image must have been [standardized](libfprint-Image-operations.html#img_std)
+ * otherwise this function will fail.
  *
  * You cannot pass a binarized image to this function. Instead, pass the
  * original image.
@@ -485,9 +512,7 @@ API_EXPORTED struct fp_img *fp_img_binarize(struct fp_img *img)
  * valid while the parent image has not been freed, and the minutiae data
  * must not be modified or freed.
  *
- * \param img a standardized image
- * \param nr_minutiae an output location to store minutiae list length
- * \returns a list of minutiae points. Must not be modified or freed.
+ * Returns: a list of minutiae points. Must not be modified or freed.
  */
 API_EXPORTED struct fp_minutia **fp_img_get_minutiae(struct fp_img *img,
 	int *nr_minutiae)
@@ -509,6 +534,56 @@ API_EXPORTED struct fp_minutia **fp_img_get_minutiae(struct fp_img *img,
 
 	*nr_minutiae = img->minutiae->num;
 	return img->minutiae->list;
+}
+
+libusb_device_handle *
+fpi_imgdev_get_usb_dev(struct fp_img_dev *dev)
+{
+	return dev->udev;
+}
+
+void
+fpi_imgdev_set_user_data(struct fp_img_dev *imgdev,
+	void *user_data)
+{
+	imgdev->priv = user_data;
+}
+
+void *
+fpi_imgdev_get_user_data(struct fp_img_dev *imgdev)
+{
+	return imgdev->priv;
+}
+
+struct fp_dev *
+fpi_imgdev_get_dev(struct fp_img_dev *imgdev)
+{
+	return imgdev->dev;
+}
+
+enum fp_imgdev_enroll_state
+fpi_imgdev_get_action_state(struct fp_img_dev *imgdev)
+{
+	return imgdev->action_state;
+}
+
+enum fp_imgdev_action
+fpi_imgdev_get_action(struct fp_img_dev *imgdev)
+{
+	return imgdev->action;
+}
+
+int
+fpi_imgdev_get_action_result(struct fp_img_dev *imgdev)
+{
+	return imgdev->action_result;
+}
+
+void
+fpi_imgdev_set_action_result(struct fp_img_dev *imgdev,
+	int action_result)
+{
+	imgdev->action_result = action_result;
 }
 
 /* Calculate squared standand deviation */
