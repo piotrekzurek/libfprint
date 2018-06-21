@@ -8,9 +8,9 @@ Last-Update: 2013-03-03
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/libfprint/drivers/uru4000.c
 +++ b/libfprint/drivers/uru4000.c
-@@ -32,6 +32,10 @@
+@@ -25,6 +25,10 @@
  
- #include "driver_ids.h"
+ #include "drivers_api.h"
  
 +#ifndef ETIME
 +#define ETIME ETIMEDOUT /* For kFreeBSD */
@@ -21,9 +21,9 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  #define USB_RQ			0x04
 --- a/libfprint/drivers/vfs101.c
 +++ b/libfprint/drivers/vfs101.c
-@@ -27,6 +27,10 @@
+@@ -21,6 +21,10 @@
  
- #include "driver_ids.h"
+ #include "drivers_api.h"
  
 +#ifndef ETIME
 +#define ETIME ETIMEDOUT /* For kFreeBSD */
@@ -34,17 +34,9 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  #define EP_OUT(n)	(n | LIBUSB_ENDPOINT_OUT)
 --- a/libfprint/drivers/vfs301.c
 +++ b/libfprint/drivers/vfs301.c
-@@ -21,6 +21,7 @@
- 
- #define FP_COMPONENT "vfs301"
- 
-+
- #include <errno.h>
- #include <signal.h>
- #include <string.h>
-@@ -36,6 +37,10 @@
- 
- #include "driver_ids.h"
+@@ -24,6 +24,10 @@
+ #include "drivers_api.h"
+ #include "vfs301_proto.h"
  
 +#ifndef ETIME
 +#define ETIME ETIMEDOUT /* For kFreeBSD */
@@ -53,3 +45,16 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  /************************** GENERIC STUFF *************************************/
  
  /* Callback of asynchronous sleep */
+--- a/libfprint/drivers/elan.c
++++ b/libfprint/drivers/elan.c
+@@ -23,6 +23,10 @@
+ #include "drivers_api.h"
+ #include "elan.h"
+ 
++#ifndef ETIME
++#define ETIME ETIMEDOUT /* For kFreeBSD */
++#endif
++
+ unsigned char elan_get_pixel(struct fpi_frame_asmbl_ctx *ctx,
+ 			     struct fpi_frame *frame, unsigned int x,
+ 			     unsigned int y)
