@@ -1,3 +1,4 @@
 version=4
 
-https://people.freedesktop.org/~anarsoul/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+https://gitlab.freedesktop.org/libfprint/libfprint/tags?sort=updated_desc \
+  /libfprint/libfprint/uploads/(?:[^/]*)/libfprint-(.*).tar.xz
