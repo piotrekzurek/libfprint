@@ -7,8 +7,9 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
     - d/p/use-non-versionned-libusbh-path.patch: Updated
   * debian/watch: Update the watch file to point to the freedesktop gitlab
     release page
+  * Build the documentation
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 13:16:54 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 15:31:56 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 
