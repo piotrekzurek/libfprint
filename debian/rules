@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 # Configuration arguments
-CONFIG_ARGS = --disable-silent-rules
+CONFIG_ARGS = -Dudev_rules_dir=/lib/udev/rules.d
 
 %:
 	dh $@ --parallel
@@ -12,13 +12,6 @@ override_dh_clean:
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(CONFIG_ARGS)
-
-override_dh_auto_install:
-	dh_auto_install
-	# Clear .la dependency_libs
-	set -e; for file in `ls $(CURDIR)/debian/tmp/usr/lib/*/*.la`; do \
-		sed -i "/dependency_libs/ s/'.*'/''/" $$file; \
-	done
 
 override_dh_installudev:
 	cp libfprint/60-fprint-autosuspend.rules debian/libfprint0.udev
