@@ -31,6 +31,7 @@ libfprint.so.0 libfprint0 #MINVER#
  fp_dscv_dev_for_print_data@Base 1:0.4.0
  fp_dscv_dev_get_devtype@Base 1:0.4.0
  fp_dscv_dev_get_driver@Base 1:0.4.0
+ fp_dscv_dev_get_driver_id@Base 1:0.8.1
  fp_dscv_dev_supports_dscv_print@Base 1:0.4.0
  fp_dscv_dev_supports_print_data@Base 1:0.4.0
  fp_dscv_devs_free@Base 1:0.4.0
@@ -39,12 +40,14 @@ libfprint.so.0 libfprint0 #MINVER#
  fp_dscv_print_get_driver_id@Base 1:0.4.0
  fp_dscv_print_get_finger@Base 1:0.4.0
  fp_dscv_prints_free@Base 1:0.4.0
+ fp_enroll_finger@Base 1:0.8.1
  fp_enroll_finger_img@Base 1:0.4.0
  fp_exit@Base 1:0.4.0
  fp_get_next_timeout@Base 1:0.4.0
  fp_get_pollfds@Base 1:0.4.0
  fp_handle_events@Base 1:0.4.0
  fp_handle_events_timeout@Base 1:0.4.0
+ fp_identify_finger@Base 1:0.8.1
  fp_identify_finger_img@Base 1:0.4.0
  fp_img_binarize@Base 1:0.4.0
  fp_img_free@Base 1:0.4.0
@@ -66,5 +69,6 @@ libfprint.so.0 libfprint0 #MINVER#
  fp_print_data_save@Base 1:0.4.0
  fp_set_debug@Base 1:0.4.0
  fp_set_pollfd_notifiers@Base 1:0.4.0
+ fp_verify_finger@Base 1:0.8.1
  fp_verify_finger_img@Base 1:0.4.0
  fprint_get_drivers@Base 1:0.4.0

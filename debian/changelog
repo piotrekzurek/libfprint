@@ -2,6 +2,7 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
     - Switch to meson, the static library is not built anymore
+    - debian/libfprint0.symbols: Add newly exported symbols
     - Fix security hole by zero out memory when allocated (Closes: #890827)
     - d/p/kFreeBSD_FTBFS_add_ETIME_definition.patch: Updated
     - d/p/use-non-versionned-libusbh-path.patch: Updated
@@ -9,7 +10,7 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
     release page
   * Build the documentation
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 15:31:56 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 18:35:29 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 
