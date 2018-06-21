@@ -27,170 +27,54 @@
 
 #include "fp_internal.h"
 
-static int log_level = 0;
-static int log_level_fixed = 0;
-
 libusb_context *fpi_usb_ctx = NULL;
 GSList *opened_devices = NULL;
 
 /**
- * \mainpage libfprint API Reference
- * libfprint is an open source library to provide access to fingerprint
- * scanning devices. For more info, see the
- * <a href="http://www.reactivated.net/fprint/Libfprint">libfprint project
- * homepage</a>.
+ * SECTION:discovery
+ * @title: Device discovery
  *
- * This documentation is aimed at application developers who wish to integrate
- * fingerprint-related functionality into their software. libfprint has been
- * designed so that you only have to do this once - by integrating your
- * software with libfprint, you'll be supporting all the fingerprint readers
- * that we have got our hands on. As such, the API is rather general (and
- * therefore hopefully easy to comprehend!), and does its best to hide the
- * technical details that required to operate the hardware.
+ * These functions allow you to scan the system for supported fingerprint
+ * scanning hardware. This is your starting point when integrating libfprint
+ * into your software.
  *
- * This documentation is not aimed at developers wishing to develop and
- * contribute fingerprint device drivers to libfprint.
- *
- * Feedback on this API and its associated documentation is appreciated. Was
- * anything unclear? Does anything seem unreasonably complicated? Is anything
- * missing? Let us know on the
- * <a href="http://www.reactivated.net/fprint/Mailing_list">mailing list</a>.
- *
- * \section enrollment Enrollment
- *
- * Before you dive into the API, it's worth introducing a couple of concepts.
- *
- * The process of enrolling a finger is where you effectively scan your
- * finger for the purposes of teaching the system what your finger looks like.
- * This means that you scan your fingerprint, then the system processes it and
- * stores some data about your fingerprint to refer to later.
- *
- * \section verification Verification
- *
- * Verification is what most people think of when they think about fingerprint
- * scanning. The process of verification is effectively performing a fresh
- * fingerprint scan, and then comparing that scan to a finger that was 
- * previously enrolled.
- *
- * As an example scenario, verification can be used to implement what people
- * would picture as fingerprint login (i.e. fingerprint replaces password).
- * For example:
- *  - I enroll my fingerprint through some software that trusts I am who I say
- *    I am. This is a prerequisite before I can perform fingerprint-based
- *    login for my account.
- *  - Some time later, I want to login to my computer. I enter my username,
- *    but instead of prompting me for a password, it asks me to scan my finger.
- *    I scan my finger.
- *  - The system compares the finger I just scanned to the one that was
- *    enrolled earlier. If the system decides that the fingerprints match,
- *    I am successfully logged in. Otherwise, the system informs me that I am
- *    not authorised to login as that user.
- *
- * \section identification Identification
- *
- * Identification is the process of comparing a freshly scanned fingerprint
- * to a <em>collection</em> of previously enrolled fingerprints. For example,
- * imagine there are 100 people in an organisation, and they all have enrolled
- * their fingerprints. One user walks up to a fingerprint scanner and scans
- * their finger. With <em>no other knowledge</em> of who that user might be,
- * the system examines their fingerprint, looks in the database, and determines
- * that the user is user number #61.
- *
- * In other words, verification might be seen as a one-to-one fingerprint
- * comparison where you know the identity of the user that you wish to
- * authenticate, whereas identification is a one-to-many comparison where you
- * do not know the identity of the user that you wish to authenticate.
- *
- * \section compat_general Device and print compatibility
- * Moving off generic conceptual ideas and onto libfprint-specific
- * implementation details, here are some introductory notes regarding how
- * libfprint copes with compatibility of fingerprints.
- *
- * libfprint deals with a whole variety of different fingerprint readers and
- * the design includes considerations of compatibility and interoperability
- * between multiple devices. Your application should also be prepared to
- * work with more than one type of fingerprint reader and should consider that
- * enrolled fingerprint X may not be compatible with the device the user has
- * plugged in today.
- *
- * libfprint implements the principle that fingerprints from different devices
- * are not necessarily compatible. For example, different devices may see
- * significantly different areas of fingerprint surface, and comparing images
- * between the devices would be unreliable. Also, devices can stretch and
- * distort images in different ways.
- *
- * libfprint also implements the principle that in some cases, fingerprints
- * <em>are</em> compatible between different devices. If you go and buy two
- * identical fingerprint readers, it seems logical that you should be able
- * to enroll on one and verify on another without problems.
- *
- * libfprint takes a fairly simplistic approach to these issues. Internally,
- * fingerprint hardware is driven by individual drivers. libfprint enforces
- * that a fingerprint that came from a device backed by driver X is never
- * compared to a fingerprint that came from a device backed by driver Y.
- *
- * Additionally, libfprint is designed for the situation where a single driver
- * may support a range of devices which differ in imaging or scanning
- * properties. For example, a driver may support two ranges of devices which
- * even though are programmed over the same interface, one device sees
- * substantially less of the finger flesh, therefore images from the two
- * device types should be incompatible despite being from the same driver. To
- * implement this, each driver assigns a <em>device type</em> to each device
- * that it detects based on its imaging characteristics. libfprint ensures that
- * two prints being compared have the same device type.
- *
- * In summary, libfprint represents fingerprints in several internal structures
- * and each representation will offer you a way of determining the
- * \ref driver_id "driver ID" and \ref devtype "devtype" of the print in
- * question. Prints are only compatible if the driver ID <b>and</b> devtypes
- * match. libfprint does offer you some "is this print compatible?" helper
- * functions, so you don't have to worry about these details too much.
- *
- * \section sync Synchronity/asynchronity
- *
- * Currently, all data acquisition operations are synchronous and can
- * potentially block for extended periods of time. For example, the enroll
- * function will block for an unpredictable amount of time until the user
- * scans their finger.
- *
- * Alternative asynchronous/non-blocking functionality will be offered in
- * future but has not been implemented yet.
- *
- * \section getting_started Getting started
- *
- * libfprint includes several simple functional examples under the examples/
- * directory in the libfprint source distribution. Those are good starting
- * points.
- *
- * Usually the first thing you want to do is determine which fingerprint
- * devices are present. This is done through \ref dscv_dev "device discovery".
- *
- * Once you have found a device you would like to operate, you should open it.
- * Refer to \ref dev "device operations". This section also details enrollment,
- * image capture, and verification.
- *
- *
- * That should be enough to get you started, but do remember there are
- * documentation pages on other aspects of libfprint's API (see the modules
- * page).
+ * When you've identified a discovered device that you would like to control,
+ * you can open it with fp_dev_open(). Note that discovered devices may no
+ * longer be available at the time when you want to open them, for example
+ * the user may have unplugged the device.
  */
 
-/** @defgroup core Core library operations */
+/**
+ * SECTION:drv
+ * @title: Driver operations
+ *
+ * Internally, libfprint is abstracted into various drivers to communicate
+ * with the different types of supported fingerprint readers. libfprint works
+ * hard so that you don't have to care about these internal abstractions,
+ * however there are some situations where you may be interested in a little
+ * behind-the-scenes driver info.
+ *
+ * You can obtain the driver for a device using fp_dev_get_driver(), which
+ * you can pass to the functions documented on this page.
+ */
 
 /**
- * @defgroup dev Device operations
+ * SECTION:dev
+ * @title: Devices operations
+ *
  * In order to interact with fingerprint scanners, your software will
  * interface primarily with libfprint's representation of devices, detailed
  * on this page.
  *
- * \section enrolling Enrolling
+ * # Enrolling # {#enrolling}
+ *
  * Enrolling is represented within libfprint as a multi-stage process. This
  * slightly complicates things for application developers, but is required
  * for a smooth process.
  *
  * Some devices require the user to scan their finger multiple times in
  * order to complete the enrollment process. libfprint must return control
- * to your application inbetween each scan in order for your application to
+ * to your application in-between each scan in order for your application to
  * instruct the user to swipe their finger again. Each scan is referred to
  * as a stage, so a device that requires 3 scans for enrollment corresponds
  * to you running 3 enrollment stages using libfprint.
@@ -208,7 +92,8 @@ GSList *opened_devices = NULL;
  * fp_enroll_finger() documentation. You should pay careful attention to the
  * details.
  *
- * \section imaging Imaging
+ * # Imaging # {#imaging}
+ *
  * libfprint provides you with some ways to retrieve images of scanned
  * fingers, such as the fp_dev_img_capture() function, or some enroll/verify
  * function variants which provide images. You may wish to do something with
@@ -224,110 +109,9 @@ GSList *opened_devices = NULL;
  * on a particular device. Your application must be able to cope with the
  * fact that libfprint does support regular operations (e.g. enrolling and
  * verification) on some devices which do not provide images.
- *
- * \section devtype Devtypes
- * Internally, the \ref drv "driver" behind a device assigns a 32-bit
- * <em>devtype</em> identifier to the device. This cannot be used as a unique
- * ID for a specific device as many devices under the same range may share
- * the same devtype. The devtype may even be 0 in all cases.
- *
- * The only reason you may be interested in retrieving the devtype for a
- * device is for the purpose of checking if some print data is compatible
- * with a device. libfprint uses the devtype as one way of checking that the
- * print you are verifying is compatible with the device in question - the
- * devtypes must be equal. This effectively allows drivers to support more
- * than one type of device where the data from each one is not compatible with
- * the other. Note that libfprint does provide you with helper functions to
- * determine whether a print is compatible with a device, so under most
- * circumstances, you don't have to worry about devtypes at all.
- */
-
-/** @defgroup dscv_dev Device discovery
- * These functions allow you to scan the system for supported fingerprint
- * scanning hardware. This is your starting point when integrating libfprint
- * into your software.
- *
- * When you've identified a discovered device that you would like to control,
- * you can open it with fp_dev_open(). Note that discovered devices may no
- * longer be available at the time when you want to open them, for example
- * the user may have unplugged the device.
- */
-
-/** @defgroup drv Driver operations
- * Internally, libfprint is abstracted into various drivers to communicate
- * with the different types of supported fingerprint readers. libfprint works
- * hard so that you don't have to care about these internal abstractions,
- * however there are some situations where you may be interested in a little
- * behind-the-scenes driver info.
- *
- * You can obtain the driver for a device using fp_dev_get_driver(), which
- * you can pass to the functions documented on this page.
- *
- * \section driver_id Driver IDs
- * Each driver is assigned a unique ID by the project maintainer. These
- * assignments are
- * <a href="http://www.reactivated.net/fprint/Driver_ID_assignments">
- * documented on the wiki</a> and will never change.
- *
- * The only reason you may be interested in retrieving the driver ID for a
- * driver is for the purpose of checking if some print data is compatible
- * with a device. libfprint uses the driver ID as one way of checking that
- * the print you are trying to verify is compatible with the device in
- * question - it ensures that enrollment data from one driver is never fed to
- * another. Note that libfprint does provide you with helper functions to
- * determine whether a print is compatible with a device, so under most
- * circumstances, you don't have to worry about driver IDs at all.
  */
 
 static GSList *registered_drivers = NULL;
-
-void fpi_log(enum fpi_log_level level, const char *component,
-	const char *function, const char *format, ...)
-{
-	va_list args;
-	FILE *stream = stdout;
-	const char *prefix;
-
-#ifndef ENABLE_DEBUG_LOGGING
-	if (!log_level)
-		return;
-	if (level == FPRINT_LOG_LEVEL_WARNING && log_level < 2)
-		return;
-	if (level == FPRINT_LOG_LEVEL_INFO && log_level < 3)
-		return;
-#endif
-
-	switch (level) {
-	case FPRINT_LOG_LEVEL_INFO:
-		prefix = "info";
-		break;
-	case FPRINT_LOG_LEVEL_WARNING:
-		stream = stderr;
-		prefix = "warning";
-		break;
-	case FPRINT_LOG_LEVEL_ERROR:
-		stream = stderr;
-		prefix = "error";
-		break;
-	case FPRINT_LOG_LEVEL_DEBUG:
-		stream = stderr;
-		prefix = "debug";
-		break;
-	default:
-		stream = stderr;
-		prefix = "unknown";
-		break;
-	}
-
-	fprintf(stream, "%s:%s [%s] ", component ? component : "fp", prefix,
-		function);
-
-	va_start (args, format);
-	vfprintf(stream, format, args);
-	va_end (args);
-
-	fprintf(stream, "\n");
-}
 
 static void register_driver(struct fp_driver *drv)
 {
@@ -339,73 +123,7 @@ static void register_driver(struct fp_driver *drv)
 	fp_dbg("registered driver %s", drv->name);
 }
 
-static struct fp_driver * const primitive_drivers[] = {
-#ifdef ENABLE_UPEKTS
-	&upekts_driver,
-#endif
-#ifdef ENABLE_UPEKE2
-    &upeke2_driver,
-#endif
-};
-
-static struct fp_img_driver * const img_drivers[] = {
-#ifdef ENABLE_AES3500
-	&aes3500_driver,
-#endif
-#ifdef ENABLE_AES4000
-	&aes4000_driver,
-#endif
-#ifdef ENABLE_AES2501
-	&aes2501_driver,
-#endif
-#ifdef ENABLE_AES2550
-	&aes2550_driver,
-#endif
-#ifdef ENABLE_URU4000
-	&uru4000_driver,
-#endif
-#ifdef ENABLE_VCOM5S
-	&vcom5s_driver,
-#endif
-#ifdef ENABLE_UPEKSONLY
-	&upeksonly_driver,
-#endif
-
-#ifdef ENABLE_AES1610
-	&aes1610_driver,
-#endif
-#ifdef ENABLE_AES1660
-	&aes1660_driver,
-#endif
-#ifdef ENABLE_AES2660
-	&aes2660_driver,
-#endif
-#ifdef ENABLE_VFS101
-	&vfs101_driver,
-#endif
-#ifdef ENABLE_VFS301
-	&vfs301_driver,
-#endif
-#ifdef ENABLE_VFS5011
-	&vfs5011_driver,
-#endif
-#ifdef ENABLE_UPEKTC
-	&upektc_driver,
-#endif
-#ifdef ENABLE_UPEKTC_IMG
-	&upektc_img_driver,
-#endif
-#ifdef ENABLE_ETES603
-	&etes603_driver,
-#endif
-#ifdef ENABLE_VFS0050
-	&vfs0050_driver,
-#endif
-/*#ifdef ENABLE_FDU2000
-	&fdu2000_driver,
-#endif
-	*/
-};
+#include "drivers_arrays.h"
 
 static void register_drivers(void)
 {
@@ -524,19 +242,20 @@ static struct fp_dscv_dev *discover_dev(libusb_device *udev)
 	return ddev;
 }
 
-/** \ingroup dscv_dev
+/**
+ * fp_discover_devs:
+ *
  * Scans the system and returns a list of discovered devices. This is your
  * entry point into finding a fingerprint reader to operate.
- * \returns a NULL-terminated list of discovered devices. Must be freed with
+ *
+ * Returns: a %NULL-terminated list of discovered devices. Must be freed with
  * fp_dscv_devs_free() after use.
  */
 API_EXPORTED struct fp_dscv_dev **fp_discover_devs(void)
 {
-	GSList *tmplist = NULL;
-	struct fp_dscv_dev **list;
+	GPtrArray *tmparray;
 	libusb_device *udev;
 	libusb_device **devs;
-	int dscv_count = 0;
 	int r;
 	int i = 0;
 
@@ -549,41 +268,35 @@ API_EXPORTED struct fp_dscv_dev **fp_discover_devs(void)
 		return NULL;
 	}
 
+	tmparray = g_ptr_array_new ();
+
 	/* Check each device against each driver, temporarily storing successfully
-	 * discovered devices in a GSList.
-	 *
-	 * Quite inefficient but excusable as we'll only be dealing with small
-	 * sets of drivers against small sets of USB devices */
+	 * discovered devices in a GPtrArray. */
 	while ((udev = devs[i++]) != NULL) {
 		struct fp_dscv_dev *ddev = discover_dev(udev);
 		if (!ddev)
 			continue;
-		tmplist = g_slist_prepend(tmplist, (gpointer) ddev);
-		dscv_count++;
+		/* discover_dev() doesn't hold a reference to the udev,
+		 * so increase the reference for ddev to hold this ref */
+		libusb_ref_device(udev);
+		g_ptr_array_add (tmparray, (gpointer) ddev);
 	}
+	libusb_free_device_list(devs, 1);
 
-	/* Convert our temporary GSList into a standard NULL-terminated pointer
+	/* Convert our temporary array into a standard NULL-terminated pointer
 	 * array. */
-	list = g_malloc(sizeof(*list) * (dscv_count + 1));
-	if (dscv_count > 0) {
-		GSList *elem = tmplist;
-		i = 0;
-		do {
-			list[i++] = elem->data;
-		} while ((elem = g_slist_next(elem)));
-	}
-	list[dscv_count] = NULL; /* NULL-terminate */
-
-	g_slist_free(tmplist);
-	return list;
+	g_ptr_array_add (tmparray, NULL);
+	return (struct fp_dscv_dev **) g_ptr_array_free (tmparray, FALSE);
 }
 
-/** \ingroup dscv_dev
+/**
+ * fp_dscv_devs_free:
+ * @devs: the list of discovered devices. If %NULL, function simply
+ * returns.
+ *
  * Free a list of discovered devices. This function destroys the list and all
  * discovered devices that it included, so make sure you have opened your
- * discovered device <b>before</b> freeing the list.
- * \param devs the list of discovered devices. If NULL, function simply
- * returns.
+ * discovered device <emphasis role="strong">before</emphasis> freeing the list.
  */
 API_EXPORTED void fp_dscv_devs_free(struct fp_dscv_dev **devs)
 {
@@ -591,25 +304,44 @@ API_EXPORTED void fp_dscv_devs_free(struct fp_dscv_dev **devs)
 	if (!devs)
 		return;
 
-	for (i = 0; devs[i]; i++)
+	for (i = 0; devs[i]; i++) {
+		libusb_unref_device(devs[i]->udev);
 		g_free(devs[i]);
+	}
 	g_free(devs);
 }
 
-/** \ingroup dscv_dev
- * Gets the \ref drv "driver" for a discovered device.
- * \param dev the discovered device
- * \returns the driver backing the device
+/**
+ * fp_dscv_dev_get_driver:
+ * @dev: the discovered device
+ *
+ * Gets the #fp_driver for a discovered device.
+ *
+ * Returns: the driver backing the device
  */
 API_EXPORTED struct fp_driver *fp_dscv_dev_get_driver(struct fp_dscv_dev *dev)
 {
 	return dev->drv;
 }
 
-/** \ingroup dscv_dev
- * Gets the \ref devtype "devtype" for a discovered device.
- * \param dev the discovered device
- * \returns the devtype of the device
+/**
+ * fp_dscv_dev_get_driver_id:
+ * @dev: a discovered fingerprint device
+ *
+ * Returns: the ID for the underlying driver for that device
+ */
+API_EXPORTED uint16_t fp_dscv_dev_get_driver_id(struct fp_dscv_dev *dev)
+{
+	return fp_driver_get_driver_id(fp_dscv_dev_get_driver(dev));
+}
+
+/**
+ * fp_dscv_dev_get_devtype:
+ * @dev: the discovered device
+ *
+ * Gets the [devtype](advanced-topics.html#device-types) for a discovered device.
+ *
+ * Returns: the devtype of the device
  */
 API_EXPORTED uint32_t fp_dscv_dev_get_devtype(struct fp_dscv_dev *dev)
 {
@@ -629,62 +361,80 @@ enum fp_print_data_type fpi_driver_get_data_type(struct fp_driver *drv)
 	}
 }
 
-/** \ingroup dscv_dev
- * Determines if a specific \ref print_data "stored print" appears to be
+/**
+ * fp_dscv_dev_supports_print_data:
+ * @dev: the discovered device
+ * @print: the print for compatibility checking
+ *
+ * Determines if a specific #fp_print_data stored print appears to be
  * compatible with a discovered device.
- * \param dev the discovered device
- * \param data the print for compatibility checking
- * \returns 1 if the print is compatible with the device, 0 otherwise
+ *
+ * Returns: 1 if the print is compatible with the device, 0 otherwise
  */
 API_EXPORTED int fp_dscv_dev_supports_print_data(struct fp_dscv_dev *dev,
-	struct fp_print_data *data)
+	struct fp_print_data *print)
 {
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
-		fpi_driver_get_data_type(dev->drv), data->driver_id, data->devtype,
-		data->type);
+		fpi_driver_get_data_type(dev->drv), print->driver_id, print->devtype,
+		print->type);
 }
 
-/** \ingroup dscv_dev
- * Determines if a specific \ref dscv_print "discovered print" appears to be
+/**
+ * fp_dscv_dev_supports_dscv_print:
+ * @dev: the discovered device
+ * @print: the discovered print for compatibility checking
+ *
+ * Determines if a specific #fp_dscv_print discovered print appears to be
  * compatible with a discovered device.
- * \param dev the discovered device
- * \param data the discovered print for compatibility checking
- * \returns 1 if the print is compatible with the device, 0 otherwise
+ *
+ * Returns: 1 if the print is compatible with the device, 0 otherwise
+ *
+ * Deprecated: Do not use.
  */
 API_EXPORTED int fp_dscv_dev_supports_dscv_print(struct fp_dscv_dev *dev,
-	struct fp_dscv_print *data)
+	struct fp_dscv_print *print)
 {
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype, 0,
-		data->driver_id, data->devtype, 0);
+		print->driver_id, print->devtype, 0);
 }
 
-/** \ingroup dscv_dev
+/**
+ * fp_dscv_dev_for_print_data:
+ * @devs: a list of discovered devices
+ * @print: the print under inspection
+ *
  * Searches a list of discovered devices for a device that appears to be
- * compatible with a \ref print_data "stored print".
- * \param devs a list of discovered devices
- * \param data the print under inspection
- * \returns the first discovered device that appears to support the print, or
- * NULL if no apparently compatible devices could be found
+ * compatible with a #fp_print_data stored print.
+ *
+ * Returns: the first discovered device that appears to support the print, or
+ * %NULL if no apparently compatible devices could be found
+ *
+ * Deprecated: Do not use.
  */
 API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_print_data(struct fp_dscv_dev **devs,
-	struct fp_print_data *data)
+	struct fp_print_data *print)
 {
 	struct fp_dscv_dev *ddev;
 	int i;
 
 	for (i = 0; (ddev = devs[i]); i++)
-		if (fp_dscv_dev_supports_print_data(ddev, data))
+		if (fp_dscv_dev_supports_print_data(ddev, print))
 			return ddev;
 	return NULL;
 }
 
-/** \ingroup dscv_dev
+/**
+ * fp_dscv_dev_for_dscv_print:
+ * @devs: a list of discovered devices
+ * @print: the print under inspection
+ *
  * Searches a list of discovered devices for a device that appears to be
- * compatible with a \ref dscv_print "discovered print".
- * \param devs a list of discovered devices
- * \param print the print under inspection
- * \returns the first discovered device that appears to support the print, or
- * NULL if no apparently compatible devices could be found
+ * compatible with a #fp_dscv_print discovered print.
+ *
+ * Returns: the first discovered device that appears to support the print, or
+ * %NULL if no apparently compatible devices could be found
+ *
+ * Deprecated: Do not use.
  */
 API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_dscv_print(struct fp_dscv_dev **devs,
 	struct fp_dscv_print *print)
@@ -692,48 +442,64 @@ API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_dscv_print(struct fp_dscv_dev *
 	struct fp_dscv_dev *ddev;
 	int i;
 
-	for (i = 0; (ddev = devs[i]); i++)
+	for (i = 0; (ddev = devs[i]); i++) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 		if (fp_dscv_dev_supports_dscv_print(ddev, print))
 			return ddev;
+#pragma GCC diagnostic pop
+	}
 	return NULL;
 }
 
-/** \ingroup dev
- * Get the \ref drv "driver" for a fingerprint device.
- * \param dev the device
- * \returns the driver controlling the device
+/**
+ * fp_dev_get_driver:
+ * @dev: the device
+ *
+ * Get the #fp_driver for a fingerprint device.
+ *
+ * Returns: the driver controlling the device
  */
 API_EXPORTED struct fp_driver *fp_dev_get_driver(struct fp_dev *dev)
 {
 	return dev->drv;
 }
 
-/** \ingroup dev
- * Gets the number of \ref enrolling "enroll stages" required to enroll a
+/**
+ * fp_dev_get_nr_enroll_stages:
+ * @dev: the device
+ *
+ * Gets the number of [enroll stages](intro.html#enrollment) required to enroll a
  * fingerprint with the device.
- * \param dev the device
- * \returns the number of enroll stages
+ *
+ * Returns: the number of enroll stages
  */
 API_EXPORTED int fp_dev_get_nr_enroll_stages(struct fp_dev *dev)
 {
 	return dev->nr_enroll_stages;
 }
 
-/** \ingroup dev
- * Gets the \ref devtype "devtype" for a device.
- * \param dev the device
- * \returns the devtype
+/**
+ * fp_dev_get_devtype:
+ * @dev: the device
+ *
+ * Gets the [devtype](advanced-topics.html#device-types) for a device.
+ *
+ * Returns: the devtype
  */
 API_EXPORTED uint32_t fp_dev_get_devtype(struct fp_dev *dev)
 {
 	return dev->devtype;
 }
 
-/** \ingroup dev
+/**
+ * fp_dev_supports_print_data:
+ * @dev: the device
+ * @data: the stored print
+ *
  * Determines if a stored print is compatible with a certain device.
- * \param dev the device
- * \param data the stored print
- * \returns 1 if the print is compatible with the device, 0 if not
+ *
+ * Returns: 1 if the print is compatible with the device, 0 if not
  */
 API_EXPORTED int fp_dev_supports_print_data(struct fp_dev *dev,
 	struct fp_print_data *data)
@@ -743,54 +509,115 @@ API_EXPORTED int fp_dev_supports_print_data(struct fp_dev *dev,
 		data->type);
 }
 
-/** \ingroup dev
- * Determines if a \ref dscv_print "discovered print" appears to be compatible
+/**
+ * fp_dev_supports_dscv_print:
+ * @dev: the device
+ * @print: the discovered print
+ *
+ * Determines if a #fp_dscv_print discovered print appears to be compatible
  * with a certain device.
- * \param dev the device
- * \param data the discovered print
- * \returns 1 if the print is compatible with the device, 0 if not
+ *
+ * Returns: 1 if the print is compatible with the device, 0 if not
+ *
+ * Deprecated: Do not use.
  */
 API_EXPORTED int fp_dev_supports_dscv_print(struct fp_dev *dev,
-	struct fp_dscv_print *data)
+	struct fp_dscv_print *print)
 {
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
-		0, data->driver_id, data->devtype, 0);
+		0, print->driver_id, print->devtype, 0);
 }
 
-/** \ingroup drv
+libusb_device_handle *
+fpi_dev_get_usb_dev(struct fp_dev *dev)
+{
+	return dev->udev;
+}
+
+void *
+fpi_dev_get_user_data (struct fp_dev *dev)
+{
+	return dev->priv;
+}
+
+void
+fpi_dev_set_user_data (struct fp_dev *dev,
+	void *user_data)
+{
+	dev->priv = user_data;
+}
+
+int
+fpi_dev_get_nr_enroll_stages(struct fp_dev *dev)
+{
+	return dev->nr_enroll_stages;
+}
+
+void
+fpi_dev_set_nr_enroll_stages(struct fp_dev *dev,
+	int nr_enroll_stages)
+{
+	dev->nr_enroll_stages = nr_enroll_stages;
+}
+
+struct fp_print_data *
+fpi_dev_get_verify_data(struct fp_dev *dev)
+{
+	return dev->verify_data;
+}
+
+enum fp_dev_state
+fpi_dev_get_dev_state(struct fp_dev *dev)
+{
+	return dev->state;
+}
+
+/**
+ * fp_driver_get_name:
+ * @drv: the driver
+ *
  * Retrieves the name of the driver. For example: "upekts"
- * \param drv the driver
- * \returns the driver name. Must not be modified or freed.
+ *
+ * Returns: the driver name. Must not be modified or freed.
  */
 API_EXPORTED const char *fp_driver_get_name(struct fp_driver *drv)
 {
 	return drv->name;
 }
 
-/** \ingroup drv
+/**
+ * fp_driver_get_full_name:
+ * @drv: the driver
+ *
  * Retrieves a descriptive name of the driver. For example: "UPEK TouchStrip"
- * \param drv the driver
- * \returns the descriptive name. Must not be modified or freed.
+ *
+ * Returns: the descriptive name. Must not be modified or freed.
  */
 API_EXPORTED const char *fp_driver_get_full_name(struct fp_driver *drv)
 {
 	return drv->full_name;
 }
 
-/** \ingroup drv
+/**
+ * fp_driver_get_driver_id:
+ * @drv: the driver
+ *
  * Retrieves the driver ID code for a driver.
- * \param drv the driver
- * \returns the driver ID
+ *
+ * Returns: the driver ID
  */
 API_EXPORTED uint16_t fp_driver_get_driver_id(struct fp_driver *drv)
 {
 	return drv->id;
 }
 
-/** \ingroup drv
+/**
+ * fp_driver_get_scan_type:
+ * @drv: the driver
+ *
  * Retrieves the scan type for the devices associated with the driver.
- * \param drv the driver
- * \returns the scan type
+ *
+ * Returns: the scan type
  */
 API_EXPORTED enum fp_scan_type fp_driver_get_scan_type(struct fp_driver *drv)
 {
@@ -804,14 +631,17 @@ static struct fp_img_dev *dev_to_img_dev(struct fp_dev *dev)
 	return dev->priv;
 }
 
-/** \ingroup dev
+/**
+ * fp_dev_supports_imaging:
+ * @dev: the fingerprint device
+ *
  * Determines if a device has imaging capabilities. If a device has imaging
  * capabilities you are able to perform imaging operations such as retrieving
  * scan images using fp_dev_img_capture(). However, not all devices are
- * imaging devices - some do all processing in hardware. This function will
+ * imaging devices – some do all processing in hardware. This function will
  * indicate which class a device in question falls into.
- * \param dev the fingerprint device
- * \returns 1 if the device is an imaging device, 0 if the device does not
+ *
+ * Returns: 1 if the device is an imaging device, 0 if the device does not
  * provide images to the host computer
  */
 API_EXPORTED int fp_dev_supports_imaging(struct fp_dev *dev)
@@ -819,25 +649,31 @@ API_EXPORTED int fp_dev_supports_imaging(struct fp_dev *dev)
 	return dev->drv->capture_start != NULL;
 }
 
-/** \ingroup dev
- * Determines if a device is capable of \ref identification "identification"
+/**
+ * fp_dev_supports_identification:
+ * @dev: the fingerprint device
+ *
+ * Determines if a device is capable of [identification](intro.html#identification)
  * through fp_identify_finger() and similar. Not all devices support this
  * functionality.
- * \param dev the fingerprint device
- * \returns 1 if the device is capable of identification, 0 otherwise.
+ *
+ * Returns: 1 if the device is capable of identification, 0 otherwise.
  */
 API_EXPORTED int fp_dev_supports_identification(struct fp_dev *dev)
 {
 	return dev->drv->identify_start != NULL;
 }
 
-/** \ingroup dev
+/**
+ * fp_dev_get_img_width:
+ * @dev: the fingerprint device
+ *
  * Gets the expected width of images that will be captured from the device.
  * This function will return -1 for devices that are not
- * \ref imaging "imaging devices". If the width of images from this device
+ * [imaging devices](libfprint-Devices-operations.html#imaging). If the width of images from this device
  * can vary, 0 will be returned.
- * \param dev the device
- * \returns the expected image width, or 0 for variable, or -1 for non-imaging
+ *
+ * Returns: the expected image width, or 0 for variable, or -1 for non-imaging
  * devices.
  */
 API_EXPORTED int fp_dev_get_img_width(struct fp_dev *dev)
@@ -851,13 +687,16 @@ API_EXPORTED int fp_dev_get_img_width(struct fp_dev *dev)
 	return fpi_imgdev_get_img_width(imgdev);
 }
 
-/** \ingroup dev
+/**
+ * fp_dev_get_img_height:
+ * @dev: the fingerprint device
+ *
  * Gets the expected height of images that will be captured from the device.
  * This function will return -1 for devices that are not
- * \ref imaging "imaging devices". If the height of images from this device
+ * [imaging devices](libfprint-Devices-operations.html#imaging). If the height of images from this device
  * can vary, 0 will be returned.
- * \param dev the device
- * \returns the expected image height, or 0 for variable, or -1 for non-imaging
+ *
+ * Returns: the expected image height, or 0 for variable, or -1 for non-imaging
  * devices.
  */
 API_EXPORTED int fp_dev_get_img_height(struct fp_dev *dev)
@@ -871,80 +710,66 @@ API_EXPORTED int fp_dev_get_img_height(struct fp_dev *dev)
 	return fpi_imgdev_get_img_height(imgdev);
 }
 
-/** \ingroup core
- * Set message verbosity.
- *  - Level 0: no messages ever printed by the library (default)
- *  - Level 1: error messages are printed to stderr
- *  - Level 2: warning and error messages are printed to stderr
- *  - Level 3: informational messages are printed to stdout, warning and error
- *    messages are printed to stderr
+/**
+ * fp_set_debug:
+ * @level: the verbosity level
  *
- * The default level is 0, which means no messages are ever printed. If you
- * choose to increase the message verbosity level, ensure that your
- * application does not close the stdout/stderr file descriptors.
- *
- * You are advised to set level 3. libfprint is conservative with its message
- * logging and most of the time, will only log messages that explain error
- * conditions and other oddities. This will help you debug your software.
- *
- * If the LIBFPRINT_DEBUG environment variable was set when libfprint was
- * initialized, this function does nothing: the message verbosity is fixed
- * to the value in the environment variable.
- *
- * If libfprint was compiled without any message logging, this function does
- * nothing: you'll never get any messages.
- *
- * If libfprint was compiled with verbose debug message logging, this function
- * does nothing: you'll always get messages from all levels.
- *
- * \param ctx the context to operate on, or NULL for the default context
- * \param level debug level to set
+ * This call does nothing, see fp_init() for details.
  */
 API_EXPORTED void fp_set_debug(int level)
 {
-	if (log_level_fixed)
-		return;
-
-	log_level = level;
-	libusb_set_debug(fpi_usb_ctx, level);
+	/* Nothing */
 }
 
-/** \ingroup core
+/**
+ * fp_init:
+ *
  * Initialise libfprint. This function must be called before you attempt to
  * use the library in any way.
- * \return 0 on success, non-zero on error.
+ *
+ * To enable debug output of libfprint specifically, use GLib's `G_MESSAGES_DEBUG`
+ * environment variable as explained in [Running and debugging GLib Applications](https://developer.gnome.org/glib/stable/glib-running.html#G_MESSAGES_DEBUG).
+ *
+ * The log domains used in libfprint are either `libfprint` or `libfprint-FP_COMPONENT`
+ * where `FP_COMPONENT` is defined in the source code for each driver, or component
+ * of the library. Starting with `all` and trimming down is advised.
+ *
+ * To enable debugging of libusb, for USB-based fingerprint reader drivers, use
+ * libusb's `LIBUSB_DEBUG` environment variable as explained in the
+ * [libusb-1.0 API Reference](http://libusb.sourceforge.net/api-1.0/#msglog).
+ *
+ * Example:
+ *
+ * ```
+ * LIBUSB_DEBUG=4 G_MESSAGES_DEBUG=all my-libfprint-application
+ * ```
+ *
+ * Returns: 0 on success, non-zero on error.
  */
 API_EXPORTED int fp_init(void)
 {
-	char *dbg = getenv("LIBFPRINT_DEBUG");
 	int r;
-	fp_dbg("");
+	G_DEBUG_HERE();
 
 	r = libusb_init(&fpi_usb_ctx);
 	if (r < 0)
 		return r;
-
-	if (dbg) {
-		log_level = atoi(dbg);
-		if (log_level) {
-			log_level_fixed = 1;
-			libusb_set_debug(fpi_usb_ctx, log_level);
-		}
-	}
 
 	register_drivers();
 	fpi_poll_init();
 	return 0;
 }
 
-/** \ingroup core
+/**
+ * fp_exit:
+ *
  * Deinitialise libfprint. This function should be called during your program
  * exit sequence. You must not use any libfprint functions after calling this
  * function, unless you call fp_init() again.
  */
 API_EXPORTED void fp_exit(void)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 
 	if (opened_devices) {
 		GSList *copy = g_slist_copy(opened_devices);

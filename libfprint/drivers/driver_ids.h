@@ -33,7 +33,7 @@ enum {
 	VFS101_ID	= 10,
 	VFS301_ID	= 11,
 	AES2550_ID	= 12,
-	UPEKE2_ID	= 13,
+	/* UPEKE2_ID = 13 */
 	AES1660_ID	= 14,
 	AES2660_ID	= 15,
 	AES3500_ID	= 16,
@@ -41,6 +41,7 @@ enum {
 	ETES603_ID	= 18,
 	VFS5011_ID	= 19,
 	VFS0050_ID	= 20,
+	ELAN_ID		= 21,
 };
 
 #endif

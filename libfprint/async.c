@@ -19,11 +19,11 @@
 
 #define FP_COMPONENT "async"
 
+#include "fp_internal.h"
+
 #include <config.h>
 #include <errno.h>
 #include <glib.h>
-
-#include "fp_internal.h"
 
 /* Drivers call this when device initialisation has completed */
 void fpi_drvcb_open_complete(struct fp_dev *dev, int status)
@@ -36,15 +36,27 @@ void fpi_drvcb_open_complete(struct fp_dev *dev, int status)
 		dev->open_cb(dev, status, dev->open_cb_data);
 }
 
-API_EXPORTED int fp_async_dev_open(struct fp_dscv_dev *ddev, fp_dev_open_cb cb,
+/**
+ * fp_async_dev_open:
+ * @ddev:
+ * @callback:
+ * @user_data
+ *
+ * Returns:
+ */
+API_EXPORTED int fp_async_dev_open(struct fp_dscv_dev *ddev, fp_dev_open_cb callback,
 	void *user_data)
 {
-	struct fp_driver *drv = ddev->drv;
+	struct fp_driver *drv;
 	struct fp_dev *dev;
 	libusb_device_handle *udevh;
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(ddev != NULL, -ENODEV);
+
+	drv = ddev->drv;
+
+	G_DEBUG_HERE();
 	r = libusb_open(ddev->udev, &udevh);
 	if (r < 0) {
 		fp_err("usb_open failed, error %d", r);
@@ -56,7 +68,7 @@ API_EXPORTED int fp_async_dev_open(struct fp_dscv_dev *ddev, fp_dev_open_cb cb,
 	dev->udev = udevh;
 	dev->__enroll_stage = -1;
 	dev->state = DEV_STATE_INITIALIZING;
-	dev->open_cb = cb;
+	dev->open_cb = callback;
 	dev->open_cb_data = user_data;
 
 	if (!drv->open) {
@@ -78,7 +90,7 @@ API_EXPORTED int fp_async_dev_open(struct fp_dscv_dev *ddev, fp_dev_open_cb cb,
 /* Drivers call this when device deinitialisation has completed */
 void fpi_drvcb_close_complete(struct fp_dev *dev)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_DEINITIALIZING);
 	dev->state = DEV_STATE_DEINITIALIZED;
 	libusb_close(dev->udev);
@@ -87,10 +99,22 @@ void fpi_drvcb_close_complete(struct fp_dev *dev)
 	g_free(dev);
 }
 
+/**
+ * fp_async_dev_close:
+ * @dev:
+ * @callback:
+ * @user_data
+ */
 API_EXPORTED void fp_async_dev_close(struct fp_dev *dev,
-	fp_dev_close_cb callback, void *user_data)
+	fp_operation_stop_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
+
+	g_return_if_fail (dev != NULL);
+
+	drv = dev->drv;
+
+	g_return_if_fail (drv->close != NULL);
 
 	if (g_slist_index(opened_devices, (gconstpointer) dev) == -1)
 		fp_err("device %p not in opened list!", dev);
@@ -98,12 +122,6 @@ API_EXPORTED void fp_async_dev_close(struct fp_dev *dev,
 
 	dev->close_cb = callback;
 	dev->close_cb_data = user_data;
-
-	if (!drv->close) {
-		fpi_drvcb_close_complete(dev);
-		return;
-	}
-
 	dev->state = DEV_STATE_DEINITIALIZING;
 	drv->close(dev);
 }
@@ -127,11 +145,23 @@ void fpi_drvcb_enroll_started(struct fp_dev *dev, int status)
 	}
 }
 
+/**
+ * fp_async_enroll_start:
+ * @dev:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_enroll_start(struct fp_dev *dev,
 	fp_enroll_stage_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	int r;
+
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
 
 	if (!dev->nr_enroll_stages || !drv->enroll_start) {
 		fp_err("driver %s has 0 enroll stages or no enroll func",
@@ -174,20 +204,32 @@ void fpi_drvcb_enroll_stage_completed(struct fp_dev *dev, int result,
 /* Drivers call this when enrollment has stopped */
 void fpi_drvcb_enroll_stopped(struct fp_dev *dev)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_ENROLL_STOPPING);
 	dev->state = DEV_STATE_INITIALIZED;
 	if (dev->enroll_stop_cb)
 		dev->enroll_stop_cb(dev, dev->enroll_stop_cb_data);
 }
 
+/**
+ * fp_async_enroll_stop:
+ * @dev:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_enroll_stop(struct fp_dev *dev,
-	fp_enroll_stop_cb callback, void *user_data)
+	fp_operation_stop_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
 	if (!drv->enroll_start)
 		return -ENOTSUP;
 
@@ -210,13 +252,26 @@ API_EXPORTED int fp_async_enroll_stop(struct fp_dev *dev,
 	return r;
 }
 
+/**
+ * fp_async_verify_start:
+ * @dev:
+ * @data:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_verify_start(struct fp_dev *dev,
-	struct fp_print_data *data, fp_verify_cb callback, void *user_data)
+	struct fp_print_data *data, fp_img_operation_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
 	if (!drv->verify_start)
 		return -ENOTSUP;
 
@@ -237,7 +292,7 @@ API_EXPORTED int fp_async_verify_start(struct fp_dev *dev,
 /* Drivers call this when verification has started */
 void fpi_drvcb_verify_started(struct fp_dev *dev, int status)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_VERIFY_STARTING);
 	if (status) {
 		if (status > 0) {
@@ -271,21 +326,33 @@ void fpi_drvcb_report_verify_result(struct fp_dev *dev, int result,
 /* Drivers call this when verification has stopped */
 void fpi_drvcb_verify_stopped(struct fp_dev *dev)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_VERIFY_STOPPING);
 	dev->state = DEV_STATE_INITIALIZED;
 	if (dev->verify_stop_cb)
 		dev->verify_stop_cb(dev, dev->verify_stop_cb_data);
 }
 
+/**
+ * fp_async_verify_stop:
+ * @dev:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_verify_stop(struct fp_dev *dev,
-	fp_verify_stop_cb callback, void *user_data)
+	fp_operation_stop_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	gboolean iterating = (dev->state == DEV_STATE_VERIFYING);
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_ERROR
 		&& dev->state != DEV_STATE_VERIFYING
 		&& dev->state != DEV_STATE_VERIFY_DONE);
@@ -311,13 +378,26 @@ API_EXPORTED int fp_async_verify_stop(struct fp_dev *dev,
 	return r;
 }
 
+/**
+ * fp_async_identify_start:
+ * @dev:
+ * @gallery:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_identify_start(struct fp_dev *dev,
 	struct fp_print_data **gallery, fp_identify_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
 	if (!drv->identify_start)
 		return -ENOTSUP;
 	dev->state = DEV_STATE_IDENTIFY_STARTING;
@@ -369,14 +449,26 @@ void fpi_drvcb_report_identify_result(struct fp_dev *dev, int result,
 		fp_dbg("ignoring verify result as no callback is subscribed");
 }
 
+/**
+ * fp_async_identify_stop:
+ * @dev:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_identify_stop(struct fp_dev *dev,
-	fp_identify_stop_cb callback, void *user_data)
+	fp_operation_stop_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	gboolean iterating = (dev->state == DEV_STATE_IDENTIFYING);
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_IDENTIFYING
 		&& dev->state != DEV_STATE_IDENTIFY_DONE);
 
@@ -405,20 +497,33 @@ API_EXPORTED int fp_async_identify_stop(struct fp_dev *dev,
 /* Drivers call this when identification has stopped */
 void fpi_drvcb_identify_stopped(struct fp_dev *dev)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_IDENTIFY_STOPPING);
 	dev->state = DEV_STATE_INITIALIZED;
 	if (dev->identify_stop_cb)
 		dev->identify_stop_cb(dev, dev->identify_stop_cb_data);
 }
 
+/**
+ * fp_async_capture_start:
+ * @dev:
+ * @unconditional:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_capture_start(struct fp_dev *dev, int unconditional,
-	fp_capture_cb callback, void *user_data)
+	fp_img_operation_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
 	if (!drv->capture_start)
 		return -ENOTSUP;
 
@@ -439,7 +544,7 @@ API_EXPORTED int fp_async_capture_start(struct fp_dev *dev, int unconditional,
 /* Drivers call this when capture has started */
 void fpi_drvcb_capture_started(struct fp_dev *dev, int status)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_CAPTURE_STARTING);
 	if (status) {
 		if (status > 0) {
@@ -472,20 +577,32 @@ void fpi_drvcb_report_capture_result(struct fp_dev *dev, int result,
 /* Drivers call this when capture has stopped */
 void fpi_drvcb_capture_stopped(struct fp_dev *dev)
 {
-	fp_dbg("");
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_CAPTURE_STOPPING);
 	dev->state = DEV_STATE_INITIALIZED;
 	if (dev->capture_stop_cb)
 		dev->capture_stop_cb(dev, dev->capture_stop_cb_data);
 }
 
+/**
+ * fp_async_capture_stop:
+ * @dev:
+ * @callback:
+ * @user_data:
+ *
+ * Returns:
+ */
 API_EXPORTED int fp_async_capture_stop(struct fp_dev *dev,
-	fp_capture_stop_cb callback, void *user_data)
+	fp_operation_stop_cb callback, void *user_data)
 {
-	struct fp_driver *drv = dev->drv;
+	struct fp_driver *drv;
 	int r;
 
-	fp_dbg("");
+	g_return_val_if_fail(dev != NULL, -ENODEV);
+
+	drv = dev->drv;
+
+	G_DEBUG_HERE();
 	BUG_ON(dev->state != DEV_STATE_ERROR
 		&& dev->state != DEV_STATE_CAPTURING
 		&& dev->state != DEV_STATE_CAPTURE_DONE);
