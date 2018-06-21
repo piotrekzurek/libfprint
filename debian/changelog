@@ -11,8 +11,10 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
   * Build the documentation
   * debian/libfprint0.lintian-overrides: Overrides udev-rule-missing-uaccess,
     we don't want the readers to be accessible by unprivileged users
+  * debian/rules: Do not explicitly pass --parallel to debhelper as it's the
+    default now
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 18:40:22 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 18:42:28 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 
