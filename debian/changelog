@@ -16,8 +16,9 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
   * debian/control: Bump Standards-Version to 4.1.4 (no further changes)
   * debian/control: Bump all the packages to priority optional, priority extra
     is now deprecated
+  * debian/rules: Simplify the installation of the udev rules file
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 21:09:25 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 21:12:34 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 

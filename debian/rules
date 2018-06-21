@@ -6,13 +6,10 @@ CONFIG_ARGS = -Dudev_rules_dir=/lib/udev/rules.d
 %:
 	dh $@
 
-override_dh_clean:
-	dh_clean
-	rm -f debian/libfprint0.udev
-
 override_dh_auto_configure:
 	dh_auto_configure -- $(CONFIG_ARGS)
 
-override_dh_installudev:
-	cp libfprint/60-fprint-autosuspend.rules debian/libfprint0.udev
-	dh_installudev
+override_dh_install:
+	mv debian/tmp/lib/udev/rules.d/60-fprint-autosuspend.rules \
+		debian/tmp/lib/udev/rules.d/60-libfprint0.rules
+	dh_install
