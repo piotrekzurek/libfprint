@@ -1,5 +1,5 @@
 Source: libfprint
-Priority: extra
+Priority: optional
 Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>

@@ -14,8 +14,10 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
   * debian/rules: Do not explicitly pass --parallel to debhelper as it's the
     default now
   * debian/control: Bump Standards-Version to 4.1.4 (no further changes)
+  * debian/control: Bump all the packages to priority optional, priority extra
+    is now deprecated
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 18:43:15 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 21:09:25 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 
