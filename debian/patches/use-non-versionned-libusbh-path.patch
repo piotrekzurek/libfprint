@@ -4,28 +4,6 @@ Description: Use non-versionned libusb.h path
  Hopefully fixes the kFreeBSD FTBFS.
 Author: Didier Raboud <odyx@debian.org>
 Last-Update: 2013-03-03
---- a/libfprint/drivers/vfs301.c
-+++ b/libfprint/drivers/vfs301.c
-@@ -28,7 +28,7 @@
- #include <stdio.h>
- #include <assert.h>
- #include <stdlib.h>
--#include <libusb-1.0/libusb.h>
-+#include <libusb.h>
- 
- #include "vfs301_proto.h"
- #include <unistd.h>
---- a/libfprint/drivers/vfs301_proto.c
-+++ b/libfprint/drivers/vfs301_proto.c
-@@ -33,7 +33,7 @@
- #include <stdio.h>
- #include <assert.h>
- #include <stdlib.h>
--#include <libusb-1.0/libusb.h>
-+#include <libusb.h>
- 
- #include "vfs301_proto.h"
- #include "vfs301_proto_fragments.h"
 --- a/libfprint/drivers/vfs301_proto.h
 +++ b/libfprint/drivers/vfs301_proto.h
 @@ -18,7 +18,7 @@
@@ -37,3 +15,14 @@ Last-Update: 2013-03-03
  
  enum {
  	VFS301_DEFAULT_WAIT_TIMEOUT = 300,
+--- a/libfprint/drivers/vfs301_proto.c
++++ b/libfprint/drivers/vfs301_proto.c
+@@ -33,7 +33,7 @@
+ #include <unistd.h>
+ #include <stdlib.h>
+ #include <glib.h>
+-#include <libusb-1.0/libusb.h>
++#include <libusb.h>
+ 
+ #include "vfs301_proto.h"
+ #include "vfs301_proto_fragments.h"
