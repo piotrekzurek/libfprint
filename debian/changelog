@@ -19,8 +19,9 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
   * debian/control: Bump all the packages to priority optional, priority extra
     is now deprecated
   * debian/rules: Simplify the installation of the udev rules file
+  * Ship the API doc in a new libfprint-doc package
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Jun 2018 22:57:46 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 16 Jul 2018 11:11:19 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 
