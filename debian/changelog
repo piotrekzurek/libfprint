@@ -2,6 +2,7 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
     - Switch to meson, the static library is not built anymore
+    - Bump debhelper version to >= 10.3 to have meson support
     - debian/libfprint0.symbols: Add newly exported symbols
     - Fix security hole by zero out memory when allocated (Closes: #890827)
     - d/p/kFreeBSD_FTBFS_add_ETIME_definition.patch: Updated
@@ -21,7 +22,7 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
   * debian/rules: Simplify the installation of the udev rules file
   * Ship the API doc in a new libfprint-doc package
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 16 Jul 2018 11:11:19 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 16 Jul 2018 16:29:17 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 

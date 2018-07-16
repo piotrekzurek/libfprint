@@ -3,7 +3,7 @@ Priority: optional
 Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
-Build-Depends: debhelper (>= 10),
+Build-Depends: debhelper (>= 10.3),
  libusb-1.0-0-dev, libglib2.0-dev, libpixman-1-dev, libxv-dev,
  libnss3-dev, meson, gtk-doc-tools
 Standards-Version: 4.1.4
