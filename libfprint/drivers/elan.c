@@ -102,7 +102,7 @@ static void elan_save_frame(struct fp_img_dev *dev)
 	elandev->num_frames += 1;
 }
 
-/* Transform raw sesnsor data to normalized 8-bit grayscale image. */
+/* Transform raw sensor data to normalized 8-bit grayscale image. */
 static void elan_process_frame(unsigned short *raw_frame, GSList ** frames)
 {
 	unsigned int frame_size =
@@ -603,6 +603,7 @@ static void dev_deactivate(struct fp_img_dev *dev)
 
 static const struct usb_id id_table[] = {
 	{.vendor = 0x04f3,.product = 0x0907},
+	{.vendor = 0x04f3,.product = 0x0c26},
 	{0, 0, 0,},
 };
 
