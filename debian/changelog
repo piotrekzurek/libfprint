@@ -22,8 +22,9 @@ libfprint (1:0.8.1-1) UNRELEASED; urgency=medium
   * debian/rules: Simplify the installation of the udev rules file
   * Ship the API doc in a new libfprint-doc package
   * d/p/fix_ftbfs_meson.patch: Fix FTBFS with newer meson
+  * debian/control: Bump Standards-Version to 4.2.0 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Sun, 12 Aug 2018 17:41:03 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 12 Aug 2018 17:41:30 +0200
 
 libfprint (1:0.7.0-1) unstable; urgency=medium
 
