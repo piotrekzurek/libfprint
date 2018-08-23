@@ -1,3 +1,11 @@
+libfprint (1:0.8.2-2) unstable; urgency=medium
+
+  * Team upload.
+  * debian/rules: Remove the *.private fields of libfprint.pc (Closes:
+    #906975)
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 23 Aug 2018 15:02:51 +0200
+
 libfprint (1:0.8.2-1) unstable; urgency=medium
 
   * Team upload.
