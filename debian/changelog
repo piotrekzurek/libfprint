@@ -1,3 +1,11 @@
+libfprint (1:0.8.2-3) unstable; urgency=medium
+
+  * Team upload.
+  * d/p/lib-Add-accessor-for-minutia-coordinates.patch: Add a way to access
+    minutia coordinates, this will help to fix ftbfs in fprint_demo
+
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 10 Oct 2018 17:20:45 +0200
+
 libfprint (1:0.8.2-2) unstable; urgency=medium
 
   * Team upload.
