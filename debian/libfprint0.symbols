@@ -58,6 +58,7 @@ libfprint.so.0 libfprint0 #MINVER#
  fp_img_save_to_file@Base 1:0.4.0
  fp_img_standardize@Base 1:0.4.0
  fp_init@Base 1:0.4.0
+ fp_minutia_get_coords@Base 1:0.8.2-3~
  fp_print_data_delete@Base 1:0.4.0
  fp_print_data_free@Base 1:0.4.0
  fp_print_data_from_data@Base 1:0.4.0
