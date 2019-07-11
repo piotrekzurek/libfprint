@@ -1,10 +1,12 @@
 libfprint (1:0.99.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
+    - d/p/lib-Add-accessor-for-minutia-coordinates.patch,
+      d/p/fix_ftbfs_meson.patch: Dropped, applied upstream
   * debian/gbp.conf: Set pristine-tar and upstream-vcs-tag
   * debian/control: Update Vcs-* fields (Closes: #909256)
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 00:08:01 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 00:13:48 +0200
 
 libfprint (1:0.8.2-3) unstable; urgency=medium
 
