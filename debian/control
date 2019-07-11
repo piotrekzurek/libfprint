@@ -8,8 +8,8 @@ Build-Depends: debhelper (>= 10.3),
  libnss3-dev, meson, gtk-doc-tools
 Standards-Version: 4.2.0
 Homepage: https://www.freedesktop.org/wiki/Software/fprint/libfprint
-Vcs-Browser: https://anonscm.debian.org/gitweb/?p=fingerforce/libfprint.git
-Vcs-Git: https://anonscm.debian.org/git/fingerforce/libfprint.git
+Vcs-Browser: https://salsa.debian.org/debian/libfprint
+Vcs-Git: https://salsa.debian.org/debian/libfprint.git
 
 Package: libfprint-dev
 Section: libdevel

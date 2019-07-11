@@ -2,8 +2,9 @@ libfprint (1:0.99.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
   * debian/gbp.conf: Set pristine-tar and upstream-vcs-tag
+  * debian/control: Update Vcs-* fields (Closes: #909256)
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 00:02:29 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 00:08:01 +0200
 
 libfprint (1:0.8.2-3) unstable; urgency=medium
 
