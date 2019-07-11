@@ -11,8 +11,10 @@ libfprint (1:0.99.0-1) UNRELEASED; urgency=medium
     is not ready yet
   * debian/control: Bump Standards-Version to 4.4.0 (no further changes)
   * debian/libfprint0.symbols: Add the Build-Depends-Package field
+  * debian/control: Add libglib2.0-doc to Build-Depends-Indep, this allows
+    gtk-doc to properly resolve all the links in the documentation
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 00:25:24 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 01:00:46 +0200
 
 libfprint (1:0.8.2-3) unstable; urgency=medium
 
