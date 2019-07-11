@@ -5,6 +5,8 @@ libfprint (1:0.99.0-1) UNRELEASED; urgency=medium
       d/p/fix_ftbfs_meson.patch: Dropped, applied upstream
     - Other patches: Refreshed
     - debian/libfprint0.symbols: Add newly exported symbol
+    - debian/libfprint0.postinst: Call udevadm --trigger also for the new
+      supported readers
   * debian/gbp.conf: Set pristine-tar and upstream-vcs-tag
   * debian/control: Update Vcs-* fields (Closes: #909256)
   * debian/rules: Disable the build of the GTK+ test application for now, this
