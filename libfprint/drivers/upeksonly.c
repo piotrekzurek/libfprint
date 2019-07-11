@@ -81,7 +81,7 @@ struct sonly_dev {
 	int dev_model;
 	int img_width;
 
-	struct fpi_ssm *loopsm;
+	fpi_ssm *loopsm;
 	struct libusb_transfer *img_transfer[NUM_BULK_TRANSFERS];
 	struct img_transfer_data *img_transfer_data;
 	int num_flying;
@@ -100,18 +100,21 @@ struct sonly_dev {
 	enum sonly_kill_transfers_action killing_transfers;
 	int kill_status_code;
 	union {
-		struct fpi_ssm *kill_ssm;
+		fpi_ssm *kill_ssm;
 		void (*kill_cb)(struct fp_img_dev *dev);
 	};
 };
 
 
-/* Calculade squared standand deviation of sum of two lines */
+/* Calculate squared standard deviation of sum of two lines */
 static int upeksonly_get_deviation2(struct fpi_line_asmbl_ctx *ctx,
 			  GSList *line1, GSList *line2)
 {
 	unsigned char *buf1 = line1->data, *buf2 = line2->data;
 	int res = 0, mean = 0, i;
+
+	g_assert (ctx->line_width > 0);
+
 	for (i = 0; i < ctx->line_width; i+= 2)
 		mean += (int)buf1[i + 1] + (int)buf2[i];
 
@@ -176,11 +179,11 @@ static void free_img_transfers(struct sonly_dev *sdev)
 
 static void last_transfer_killed(struct fp_img_dev *dev)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	switch (sdev->killing_transfers) {
 	case ABORT_SSM:
 		fp_dbg("abort ssm error %d", sdev->kill_status_code);
-		fpi_ssm_mark_aborted(sdev->kill_ssm, sdev->kill_status_code);
+		fpi_ssm_mark_failed(sdev->kill_ssm, sdev->kill_status_code);
 		return;
 	case ITERATE_SSM:
 		fp_dbg("iterate ssm");
@@ -197,7 +200,7 @@ static void last_transfer_killed(struct fp_img_dev *dev)
 
 static void cancel_img_transfers(struct fp_img_dev *dev)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	int i;
 
 	if (sdev->num_flying == 0) {
@@ -224,7 +227,7 @@ static gboolean is_capturing(struct sonly_dev *sdev)
 
 static void handoff_img(struct fp_img_dev *dev)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	struct fp_img *img;
 
 	GSList *elem = sdev->rows;
@@ -252,7 +255,7 @@ static void handoff_img(struct fp_img_dev *dev)
 
 static void row_complete(struct fp_img_dev *dev)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	sdev->rowbuf_offset = -1;
 
 	if (sdev->num_rows > 0) {
@@ -340,7 +343,7 @@ static void row_complete(struct fp_img_dev *dev)
 /* add data to row buffer */
 static void add_to_rowbuf(struct fp_img_dev *dev, unsigned char *data, int size)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
 	memcpy(sdev->rowbuf + sdev->rowbuf_offset, data, size);
 	sdev->rowbuf_offset += size;
@@ -374,7 +377,7 @@ static int rowbuf_remaining(struct sonly_dev *sdev)
 
 static void handle_packet(struct fp_img_dev *dev, unsigned char *data)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	uint16_t seqnum = data[0] << 8 | data[1];
 	int abs_base_addr;
 	int for_rowbuf;
@@ -470,7 +473,7 @@ static void img_data_cb(struct libusb_transfer *transfer)
 {
 	struct img_transfer_data *idata = transfer->user_data;
 	struct fp_img_dev *dev = idata->dev;
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	int i;
 
 	idata->flying = FALSE;
@@ -520,7 +523,7 @@ static void img_data_cb(struct libusb_transfer *transfer)
 /***** STATE MACHINE HELPERS *****/
 
 struct write_regs_data {
-	struct fpi_ssm *ssm;
+	fpi_ssm *ssm;
 	struct libusb_transfer *transfer;
 	const struct sonly_regwrite *regs;
 	size_t num_regs;
@@ -534,7 +537,7 @@ static void write_regs_finished(struct write_regs_data *wrdata, int result)
 	if (result == 0)
 		fpi_ssm_next_state(wrdata->ssm);
 	else
-		fpi_ssm_mark_aborted(wrdata->ssm, result);
+		fpi_ssm_mark_failed(wrdata->ssm, result);
 	g_free(wrdata);
 }
 
@@ -574,23 +577,18 @@ static void write_regs_cb(struct libusb_transfer *transfer)
 	write_regs_iterate(wrdata);
 }
 
-static void sm_write_regs(struct fpi_ssm *ssm,
-	const struct sonly_regwrite *regs, size_t num_regs)
+static void
+sm_write_regs(fpi_ssm                     *ssm,
+	      struct fp_dev               *dev,
+	      const struct sonly_regwrite *regs,
+	      size_t                       num_regs)
 {
 	struct write_regs_data *wrdata = g_malloc(sizeof(*wrdata));
 	unsigned char *data;
-	struct fp_dev *dev;
 
-	wrdata->transfer = libusb_alloc_transfer(0);
-	if (!wrdata->transfer) {
-		g_free(wrdata);
-		fpi_ssm_mark_aborted(ssm, -ENOMEM);
-		return;
-	}
-
+	wrdata->transfer = fpi_usb_alloc();
 	data = g_malloc(LIBUSB_CONTROL_SETUP_SIZE + 1);
 	libusb_fill_control_setup(data, 0x40, 0x0c, 0, 0, 1);
-	dev = fpi_ssm_get_dev(ssm);
 	libusb_fill_control_transfer(wrdata->transfer,
 		fpi_dev_get_usb_dev(dev), data,
 		write_regs_cb, wrdata, CTRL_TIMEOUT);
@@ -605,31 +603,29 @@ static void sm_write_regs(struct fpi_ssm *ssm,
 
 static void sm_write_reg_cb(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	g_free(transfer->buffer);
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 	else
 		fpi_ssm_next_state(ssm);
 
 }
 
-static void sm_write_reg(struct fpi_ssm *ssm, uint8_t reg, uint8_t value)
+static void
+sm_write_reg(fpi_ssm           *ssm,
+	     struct fp_img_dev *dev,
+	     uint8_t            reg,
+	     uint8_t            value)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct libusb_transfer *transfer = libusb_alloc_transfer(0);
+	struct libusb_transfer *transfer = fpi_usb_alloc();
 	unsigned char *data;
 	int r;
-
-	if (!transfer) {
-		fpi_ssm_mark_aborted(ssm, -ENOMEM);
-		return;
-	}
 
 	fp_dbg("set %02x=%02x", reg, value);
 	data = g_malloc(LIBUSB_CONTROL_SETUP_SIZE + 1);
 	libusb_fill_control_setup(data, 0x40, 0x0c, 0, reg, 1);
-	libusb_fill_control_transfer(transfer, fpi_imgdev_get_usb_dev(dev),
+	libusb_fill_control_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)),
 		data, sm_write_reg_cb,
 		ssm, CTRL_TIMEOUT);
 
@@ -641,18 +637,18 @@ static void sm_write_reg(struct fpi_ssm *ssm, uint8_t reg, uint8_t value)
 	if (r < 0) {
 		g_free(data);
 		libusb_free_transfer(transfer);
-		fpi_ssm_mark_aborted(ssm, r);
+		fpi_ssm_mark_failed(ssm, r);
 	}
 }
 
 static void sm_read_reg_cb(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 	} else {
 		sdev->read_reg_result = libusb_control_transfer_get_data(transfer)[0];
 		fp_dbg("read reg result = %02x", sdev->read_reg_result);
@@ -662,22 +658,19 @@ static void sm_read_reg_cb(struct libusb_transfer *transfer)
 	g_free(transfer->buffer);
 }
 
-static void sm_read_reg(struct fpi_ssm *ssm, uint8_t reg)
+static void
+sm_read_reg(fpi_ssm           *ssm,
+	    struct fp_img_dev *dev,
+	    uint8_t            reg)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct libusb_transfer *transfer = libusb_alloc_transfer(0);
+	struct libusb_transfer *transfer = fpi_usb_alloc();
 	unsigned char *data;
 	int r;
-
-	if (!transfer) {
-		fpi_ssm_mark_aborted(ssm, -ENOMEM);
-		return;
-	}
 
 	fp_dbg("read reg %02x", reg);
 	data = g_malloc(LIBUSB_CONTROL_SETUP_SIZE + 8);
 	libusb_fill_control_setup(data, 0xc0, 0x0c, 0, reg, 8);
-	libusb_fill_control_transfer(transfer, fpi_imgdev_get_usb_dev(dev),
+	libusb_fill_control_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)),
 		data, sm_read_reg_cb,
 		ssm, CTRL_TIMEOUT);
 	transfer->flags = LIBUSB_TRANSFER_SHORT_NOT_OK |
@@ -687,19 +680,19 @@ static void sm_read_reg(struct fpi_ssm *ssm, uint8_t reg)
 	if (r < 0) {
 		g_free(data);
 		libusb_free_transfer(transfer);
-		fpi_ssm_mark_aborted(ssm, r);
+		fpi_ssm_mark_failed(ssm, r);
 	}
 }
 
 static void sm_await_intr_cb(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
 		g_free(transfer->buffer);
-		fpi_ssm_mark_aborted(ssm, transfer->status);
+		fpi_ssm_mark_failed(ssm, transfer->status);
 		return;
 	}
 
@@ -713,21 +706,17 @@ static void sm_await_intr_cb(struct libusb_transfer *transfer)
 	fpi_ssm_next_state(ssm);
 }
 
-static void sm_await_intr(struct fpi_ssm *ssm)
+static void
+sm_await_intr(fpi_ssm           *ssm,
+	      struct fp_img_dev *dev)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct libusb_transfer *transfer = libusb_alloc_transfer(0);
+	struct libusb_transfer *transfer = fpi_usb_alloc();
 	unsigned char *data;
 	int r;
 
-	if (!transfer) {
-		fpi_ssm_mark_aborted(ssm, -ENOMEM);
-		return;
-	}
-
 	G_DEBUG_HERE();
 	data = g_malloc(4);
-	libusb_fill_interrupt_transfer(transfer, fpi_imgdev_get_usb_dev(dev),
+	libusb_fill_interrupt_transfer(transfer, fpi_dev_get_usb_dev(FP_DEV(dev)),
 		0x83, data, 4,
 		sm_await_intr_cb, ssm, 0);
 	transfer->flags = LIBUSB_TRANSFER_SHORT_NOT_OK |
@@ -737,7 +726,7 @@ static void sm_await_intr(struct fpi_ssm *ssm)
 	if (r < 0) {
 		libusb_free_transfer(transfer);
 		g_free(data);
-		fpi_ssm_mark_aborted(ssm, r);
+		fpi_ssm_mark_failed(ssm, r);
 	}
 }
 
@@ -763,61 +752,61 @@ enum awfsm_1000_states {
 	AWFSM_1000_NUM_STATES,
 };
 
-static void awfsm_2016_run_state(struct fpi_ssm *ssm)
+static void awfsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case AWFSM_2016_WRITEV_1:
-		sm_write_regs(ssm, awfsm_2016_writev_1, G_N_ELEMENTS(awfsm_2016_writev_1));
+		sm_write_regs(ssm, _dev, awfsm_2016_writev_1, G_N_ELEMENTS(awfsm_2016_writev_1));
 		break;
 	case AWFSM_2016_READ_01:
-		sm_read_reg(ssm, 0x01);
+		sm_read_reg(ssm, dev, 0x01);
 		break;
 	case AWFSM_2016_WRITE_01:
 		if (sdev->read_reg_result != 0xc6)
-			sm_write_reg(ssm, 0x01, 0x46);
+			sm_write_reg(ssm, dev, 0x01, 0x46);
 		else
-			sm_write_reg(ssm, 0x01, 0xc6);
+			sm_write_reg(ssm, dev, 0x01, 0xc6);
 		break;
 	case AWFSM_2016_WRITEV_2:
-		sm_write_regs(ssm, awfsm_2016_writev_2, G_N_ELEMENTS(awfsm_2016_writev_2));
+		sm_write_regs(ssm, _dev, awfsm_2016_writev_2, G_N_ELEMENTS(awfsm_2016_writev_2));
 		break;
 	case AWFSM_2016_READ_13:
-		sm_read_reg(ssm, 0x13);
+		sm_read_reg(ssm, dev, 0x13);
 		break;
 	case AWFSM_2016_WRITE_13:
 		if (sdev->read_reg_result != 0x45)
-			sm_write_reg(ssm, 0x13, 0x05);
+			sm_write_reg(ssm, dev, 0x13, 0x05);
 		else
-			sm_write_reg(ssm, 0x13, 0x45);
+			sm_write_reg(ssm, dev, 0x13, 0x45);
 		break;
 	case AWFSM_2016_WRITEV_3:
-		sm_write_regs(ssm, awfsm_2016_writev_3, G_N_ELEMENTS(awfsm_2016_writev_3));
+		sm_write_regs(ssm, _dev, awfsm_2016_writev_3, G_N_ELEMENTS(awfsm_2016_writev_3));
 		break;
 	case AWFSM_2016_READ_07:
-		sm_read_reg(ssm, 0x07);
+		sm_read_reg(ssm, dev, 0x07);
 		break;
 	case AWFSM_2016_WRITE_07:
 		if (sdev->read_reg_result != 0x10 && sdev->read_reg_result != 0x90)
 			fp_warn("odd reg7 value %x", sdev->read_reg_result);
-		sm_write_reg(ssm, 0x07, sdev->read_reg_result);
+		sm_write_reg(ssm, dev, 0x07, sdev->read_reg_result);
 		break;
 	case AWFSM_2016_WRITEV_4:
-		sm_write_regs(ssm, awfsm_2016_writev_4, G_N_ELEMENTS(awfsm_2016_writev_4));
+		sm_write_regs(ssm, _dev, awfsm_2016_writev_4, G_N_ELEMENTS(awfsm_2016_writev_4));
 		break;
 	}
 }
 
-static void awfsm_1000_run_state(struct fpi_ssm *ssm)
+static void awfsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case AWFSM_1000_WRITEV_1:
-		sm_write_regs(ssm, awfsm_1000_writev_1, G_N_ELEMENTS(awfsm_1000_writev_1));
+		sm_write_regs(ssm, _dev, awfsm_1000_writev_1, G_N_ELEMENTS(awfsm_1000_writev_1));
 		break;
 	case AWFSM_1000_WRITEV_2:
-		sm_write_regs(ssm, awfsm_1000_writev_2, G_N_ELEMENTS(awfsm_1000_writev_2));
+		sm_write_regs(ssm, _dev, awfsm_1000_writev_2, G_N_ELEMENTS(awfsm_1000_writev_2));
 		break;
 	}
 }
@@ -851,17 +840,19 @@ enum capsm_1001_states {
 	CAPSM_1001_NUM_STATES,
 };
 
-static void capsm_fire_bulk(struct fpi_ssm *ssm)
+static void
+capsm_fire_bulk(fpi_ssm       *ssm,
+		struct fp_dev *_dev)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = FP_IMG_DEV(_dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 	int i;
 	for (i = 0; i < NUM_BULK_TRANSFERS; i++) {
 		int r = libusb_submit_transfer(sdev->img_transfer[i]);
 		if (r < 0) {
 			if (i == 0) {
 				/* first one failed: easy peasy */
-				fpi_ssm_mark_aborted(ssm, r);
+				fpi_ssm_mark_failed(ssm, r);
 				return;
 			}
 
@@ -881,10 +872,10 @@ static void capsm_fire_bulk(struct fpi_ssm *ssm)
 	fpi_ssm_next_state(ssm);
 }
 
-static void capsm_2016_run_state(struct fpi_ssm *ssm)
+static void capsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPSM_2016_INIT:
@@ -899,24 +890,23 @@ static void capsm_2016_run_state(struct fpi_ssm *ssm)
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAPSM_2016_WRITE_15:
-		sm_write_reg(ssm, 0x15, 0x20);
+		sm_write_reg(ssm, dev, 0x15, 0x20);
 		break;
 	case CAPSM_2016_WRITE_30:
-		sm_write_reg(ssm, 0x30, 0xe0);
+		sm_write_reg(ssm, dev, 0x30, 0xe0);
 		break;
 	case CAPSM_2016_FIRE_BULK: ;
-		capsm_fire_bulk (ssm);
+		capsm_fire_bulk (ssm, _dev);
 		break;
 	case CAPSM_2016_WRITEV:
-		sm_write_regs(ssm, capsm_2016_writev, G_N_ELEMENTS(capsm_2016_writev));
+		sm_write_regs(ssm, _dev, capsm_2016_writev, G_N_ELEMENTS(capsm_2016_writev));
 		break;
 	}
 }
 
-static void capsm_1000_run_state(struct fpi_ssm *ssm)
+static void capsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPSM_1000_INIT:
@@ -931,18 +921,17 @@ static void capsm_1000_run_state(struct fpi_ssm *ssm)
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAPSM_1000_FIRE_BULK: ;
-		capsm_fire_bulk (ssm);
+		capsm_fire_bulk (ssm, _dev);
 		break;
 	case CAPSM_1000_WRITEV:
-		sm_write_regs(ssm, capsm_1000_writev, G_N_ELEMENTS(capsm_1000_writev));
+		sm_write_regs(ssm, _dev, capsm_1000_writev, G_N_ELEMENTS(capsm_1000_writev));
 		break;
 	}
 }
 
-static void capsm_1001_run_state(struct fpi_ssm *ssm)
+static void capsm_1001_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case CAPSM_1001_INIT:
@@ -957,22 +946,22 @@ static void capsm_1001_run_state(struct fpi_ssm *ssm)
 		fpi_ssm_next_state(ssm);
 		break;
 	case CAPSM_1001_FIRE_BULK: ;
-		capsm_fire_bulk (ssm);
+		capsm_fire_bulk (ssm, _dev);
 		break;
 	case CAPSM_1001_WRITEV_1:
-		sm_write_regs(ssm, capsm_1001_writev_1, G_N_ELEMENTS(capsm_1001_writev_1));
+		sm_write_regs(ssm, _dev, capsm_1001_writev_1, G_N_ELEMENTS(capsm_1001_writev_1));
 		break;
 	case CAPSM_1001_WRITEV_2:
-		sm_write_regs(ssm, capsm_1001_writev_2, G_N_ELEMENTS(capsm_1001_writev_2));
+		sm_write_regs(ssm, _dev, capsm_1001_writev_2, G_N_ELEMENTS(capsm_1001_writev_2));
 		break;
 	case CAPSM_1001_WRITEV_3:
-		sm_write_regs(ssm, capsm_1001_writev_3, G_N_ELEMENTS(capsm_1001_writev_3));
+		sm_write_regs(ssm, _dev, capsm_1001_writev_3, G_N_ELEMENTS(capsm_1001_writev_3));
 		break;
 	case CAPSM_1001_WRITEV_4:
-		sm_write_regs(ssm, capsm_1001_writev_4, G_N_ELEMENTS(capsm_1001_writev_4));
+		sm_write_regs(ssm, _dev, capsm_1001_writev_4, G_N_ELEMENTS(capsm_1001_writev_4));
 		break;
 	case CAPSM_1001_WRITEV_5:
-		sm_write_regs(ssm, capsm_1001_writev_5, G_N_ELEMENTS(capsm_1001_writev_5));
+		sm_write_regs(ssm, _dev, capsm_1001_writev_5, G_N_ELEMENTS(capsm_1001_writev_5));
 		break;
 	}
 }
@@ -994,29 +983,29 @@ enum deinitsm_1001_states {
 	DEINITSM_1001_NUM_STATES,
 };
 
-static void deinitsm_2016_run_state(struct fpi_ssm *ssm)
+static void deinitsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case DEINITSM_2016_WRITEV:
-		sm_write_regs(ssm, deinitsm_2016_writev, G_N_ELEMENTS(deinitsm_2016_writev));
+		sm_write_regs(ssm, _dev, deinitsm_2016_writev, G_N_ELEMENTS(deinitsm_2016_writev));
 		break;
 	}
 }
 
-static void deinitsm_1000_run_state(struct fpi_ssm *ssm)
+static void deinitsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case DEINITSM_1000_WRITEV:
-		sm_write_regs(ssm, deinitsm_1000_writev, G_N_ELEMENTS(deinitsm_1000_writev));
+		sm_write_regs(ssm, _dev, deinitsm_1000_writev, G_N_ELEMENTS(deinitsm_1000_writev));
 		break;
 	}
 }
 
-static void deinitsm_1001_run_state(struct fpi_ssm *ssm)
+static void deinitsm_1001_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case DEINITSM_1001_WRITEV:
-		sm_write_regs(ssm, deinitsm_1001_writev, G_N_ELEMENTS(deinitsm_1001_writev));
+		sm_write_regs(ssm, _dev, deinitsm_1001_writev, G_N_ELEMENTS(deinitsm_1001_writev));
 		break;
 	}
 }
@@ -1048,62 +1037,62 @@ enum initsm_1001_states {
 	INITSM_1001_NUM_STATES,
 };
 
-static void initsm_2016_run_state(struct fpi_ssm *ssm)
+static void initsm_2016_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case INITSM_2016_WRITEV_1:
-		sm_write_regs(ssm, initsm_2016_writev_1, G_N_ELEMENTS(initsm_2016_writev_1));
+		sm_write_regs(ssm, _dev, initsm_2016_writev_1, G_N_ELEMENTS(initsm_2016_writev_1));
 		break;
 	case INITSM_2016_READ_09:
-		sm_read_reg(ssm, 0x09);
+		sm_read_reg(ssm, dev, 0x09);
 		break;
 	case INITSM_2016_WRITE_09:
-		sm_write_reg(ssm, 0x09, sdev->read_reg_result & ~0x08);
+		sm_write_reg(ssm, dev, 0x09, sdev->read_reg_result & ~0x08);
 		break;
 	case INITSM_2016_READ_13:
-		sm_read_reg(ssm, 0x13);
+		sm_read_reg(ssm, dev, 0x13);
 		break;
 	case INITSM_2016_WRITE_13:
-		sm_write_reg(ssm, 0x13, sdev->read_reg_result & ~0x10);
+		sm_write_reg(ssm, dev, 0x13, sdev->read_reg_result & ~0x10);
 		break;
 	case INITSM_2016_WRITE_04:
-		sm_write_reg(ssm, 0x04, 0x00);
+		sm_write_reg(ssm, dev, 0x04, 0x00);
 		break;
 	case INITSM_2016_WRITE_05:
-		sm_write_reg(ssm, 0x05, 0x00);
+		sm_write_reg(ssm, dev, 0x05, 0x00);
 		break;
 	}
 }
 
-static void initsm_1000_run_state(struct fpi_ssm *ssm)
+static void initsm_1000_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case INITSM_1000_WRITEV_1:
-		sm_write_regs(ssm, initsm_1000_writev_1, G_N_ELEMENTS(initsm_1000_writev_1));
+		sm_write_regs(ssm, _dev, initsm_1000_writev_1, G_N_ELEMENTS(initsm_1000_writev_1));
 		break;
 	}
 }
 
-static void initsm_1001_run_state(struct fpi_ssm *ssm)
+static void initsm_1001_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case INITSM_1001_WRITEV_1:
-		sm_write_regs(ssm, initsm_1001_writev_1, G_N_ELEMENTS(initsm_1001_writev_1));
+		sm_write_regs(ssm, _dev, initsm_1001_writev_1, G_N_ELEMENTS(initsm_1001_writev_1));
 		break;
 	case INITSM_1001_WRITEV_2:
-		sm_write_regs(ssm, initsm_1001_writev_2, G_N_ELEMENTS(initsm_1001_writev_2));
+		sm_write_regs(ssm, _dev, initsm_1001_writev_2, G_N_ELEMENTS(initsm_1001_writev_2));
 		break;
 	case INITSM_1001_WRITEV_3:
-		sm_write_regs(ssm, initsm_1001_writev_3, G_N_ELEMENTS(initsm_1001_writev_3));
+		sm_write_regs(ssm, _dev, initsm_1001_writev_3, G_N_ELEMENTS(initsm_1001_writev_3));
 		break;
 	case INITSM_1001_WRITEV_4:
-		sm_write_regs(ssm, initsm_1001_writev_4, G_N_ELEMENTS(initsm_1001_writev_4));
+		sm_write_regs(ssm, _dev, initsm_1001_writev_4, G_N_ELEMENTS(initsm_1001_writev_4));
 		break;
 	case INITSM_1001_WRITEV_5:
-		sm_write_regs(ssm, initsm_1001_writev_5, G_N_ELEMENTS(initsm_1001_writev_5));
+		sm_write_regs(ssm, _dev, initsm_1001_writev_5, G_N_ELEMENTS(initsm_1001_writev_5));
 		break;
 	}
 }
@@ -1120,10 +1109,10 @@ enum loopsm_states {
 	LOOPSM_NUM_STATES,
 };
 
-static void loopsm_run_state(struct fpi_ssm *ssm)
+static void loopsm_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case LOOPSM_RUN_AWFSM: ;
@@ -1139,18 +1128,17 @@ static void loopsm_run_state(struct fpi_ssm *ssm)
 			if (sdev->deactivating) {
 				fpi_ssm_mark_completed(ssm);
 			} else {
-				struct fpi_ssm *awfsm = NULL;
+				fpi_ssm *awfsm = NULL;
 				switch (sdev->dev_model) {
 				case UPEKSONLY_2016:
-					awfsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), awfsm_2016_run_state,
-						AWFSM_2016_NUM_STATES);
+					awfsm = fpi_ssm_new(FP_DEV(dev), awfsm_2016_run_state,
+						AWFSM_2016_NUM_STATES, dev);
 					break;
 				case UPEKSONLY_1000:
-					awfsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), awfsm_1000_run_state,
-						AWFSM_1000_NUM_STATES);
+					awfsm = fpi_ssm_new(FP_DEV(dev), awfsm_1000_run_state,
+						AWFSM_1000_NUM_STATES, dev);
 					break;
 				}
-				fpi_ssm_set_user_data(awfsm, dev);
 				fpi_ssm_start_subsm(ssm, awfsm);
 			}
 			break;
@@ -1162,49 +1150,47 @@ static void loopsm_run_state(struct fpi_ssm *ssm)
 			fpi_ssm_next_state(ssm);
 			break;
 		default:
-			sm_await_intr(ssm);
+			sm_await_intr(ssm, dev);
 			break;
 		}
 		break;
 	case LOOPSM_RUN_CAPSM: ;
-		struct fpi_ssm *capsm = NULL;
+		fpi_ssm *capsm = NULL;
 		switch (sdev->dev_model) {
 		case UPEKSONLY_2016:
-			capsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), capsm_2016_run_state,
-				CAPSM_2016_NUM_STATES);
+			capsm = fpi_ssm_new(FP_DEV(dev), capsm_2016_run_state,
+				CAPSM_2016_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1000:
-			capsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), capsm_1000_run_state,
-				CAPSM_1000_NUM_STATES);
+			capsm = fpi_ssm_new(FP_DEV(dev), capsm_1000_run_state,
+				CAPSM_1000_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1001:
-			capsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), capsm_1001_run_state,
-				CAPSM_1001_NUM_STATES);
+			capsm = fpi_ssm_new(FP_DEV(dev), capsm_1001_run_state,
+				CAPSM_1001_NUM_STATES, dev);
 			break;
 		}
-		fpi_ssm_set_user_data(capsm, dev);
 		fpi_ssm_start_subsm(ssm, capsm);
 		break;
 	case LOOPSM_CAPTURE:
 		break;
 	case LOOPSM_RUN_DEINITSM: ;
-		struct fpi_ssm *deinitsm = NULL;
+		fpi_ssm *deinitsm = NULL;
 		switch (sdev->dev_model) {
 		case UPEKSONLY_2016:
-			deinitsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), deinitsm_2016_run_state,
-				DEINITSM_2016_NUM_STATES);
+			deinitsm = fpi_ssm_new(FP_DEV(dev), deinitsm_2016_run_state,
+				DEINITSM_2016_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1000:
-			deinitsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), deinitsm_1000_run_state,
-				DEINITSM_1000_NUM_STATES);
+			deinitsm = fpi_ssm_new(FP_DEV(dev), deinitsm_1000_run_state,
+				DEINITSM_1000_NUM_STATES, dev);
 			break;
 		case UPEKSONLY_1001:
-			deinitsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), deinitsm_1001_run_state,
-				DEINITSM_1001_NUM_STATES);
+			deinitsm = fpi_ssm_new(FP_DEV(dev), deinitsm_1001_run_state,
+				DEINITSM_1001_NUM_STATES, dev);
 			break;
 		}
 		sdev->capturing = FALSE;
-		fpi_ssm_set_user_data(deinitsm, dev);
 		fpi_ssm_start_subsm(ssm, deinitsm);
 		break;
 	case LOOPSM_FINAL:
@@ -1218,7 +1204,7 @@ static void loopsm_run_state(struct fpi_ssm *ssm)
 
 static void deactivate_done(struct fp_img_dev *dev)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
 	G_DEBUG_HERE();
 	free_img_transfers(sdev);
@@ -1235,7 +1221,7 @@ static void deactivate_done(struct fp_img_dev *dev)
 
 static void dev_deactivate(struct fp_img_dev *dev)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
 	if (!sdev->capturing) {
 		deactivate_done(dev);
@@ -1248,10 +1234,10 @@ static void dev_deactivate(struct fp_img_dev *dev)
 	cancel_img_transfers(dev);
 }
 
-static void loopsm_complete(struct fpi_ssm *ssm)
+static void loopsm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 	int r = fpi_ssm_get_error(ssm);
 
 	fpi_ssm_free(ssm);
@@ -1267,10 +1253,10 @@ static void loopsm_complete(struct fpi_ssm *ssm)
 	}
 }
 
-static void initsm_complete(struct fpi_ssm *ssm)
+static void initsm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(_dev);
 	int r = fpi_ssm_get_error(ssm);
 
 	fpi_ssm_free(ssm);
@@ -1278,15 +1264,14 @@ static void initsm_complete(struct fpi_ssm *ssm)
 	if (r != 0)
 		return;
 
-	sdev->loopsm = fpi_ssm_new(fpi_imgdev_get_dev(dev), loopsm_run_state, LOOPSM_NUM_STATES);
-	fpi_ssm_set_user_data(sdev->loopsm, dev);
+	sdev->loopsm = fpi_ssm_new(FP_DEV(dev), loopsm_run_state, LOOPSM_NUM_STATES, dev);
 	fpi_ssm_start(sdev->loopsm, loopsm_complete);
 }
 
 static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
 {
-	struct sonly_dev *sdev = fpi_imgdev_get_user_data(dev);
-	struct fpi_ssm *ssm = NULL;
+	struct sonly_dev *sdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	fpi_ssm *ssm = NULL;
 	int i;
 
 	sdev->deactivating = FALSE;
@@ -1299,31 +1284,26 @@ static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
 	sdev->num_flying = 0;
 	for (i = 0; i < NUM_BULK_TRANSFERS; i++) {
 		unsigned char *data;
-		sdev->img_transfer[i] = libusb_alloc_transfer(0);
-		if (!sdev->img_transfer[i]) {
-			free_img_transfers(sdev);
-			return -ENOMEM;
-		}
+		sdev->img_transfer[i] = fpi_usb_alloc();
 		sdev->img_transfer_data[i].idx = i;
 		sdev->img_transfer_data[i].dev = dev;
 		data = g_malloc(4096);
-		libusb_fill_bulk_transfer(sdev->img_transfer[i], fpi_imgdev_get_usb_dev(dev),
+		libusb_fill_bulk_transfer(sdev->img_transfer[i], fpi_dev_get_usb_dev(FP_DEV(dev)),
 			0x81, data,
 			4096, img_data_cb, &sdev->img_transfer_data[i], 0);
 	}
 
 	switch (sdev->dev_model) {
 	case UPEKSONLY_2016:
-		ssm = fpi_ssm_new(fpi_imgdev_get_dev(dev), initsm_2016_run_state, INITSM_2016_NUM_STATES);
+		ssm = fpi_ssm_new(FP_DEV(dev), initsm_2016_run_state, INITSM_2016_NUM_STATES, dev);
 		break;
 	case UPEKSONLY_1000:
-		ssm = fpi_ssm_new(fpi_imgdev_get_dev(dev), initsm_1000_run_state, INITSM_1000_NUM_STATES);
+		ssm = fpi_ssm_new(FP_DEV(dev), initsm_1000_run_state, INITSM_1000_NUM_STATES, dev);
 		break;
 	case UPEKSONLY_1001:
-		ssm = fpi_ssm_new(fpi_imgdev_get_dev(dev), initsm_1001_run_state, INITSM_1001_NUM_STATES);
+		ssm = fpi_ssm_new(FP_DEV(dev), initsm_1001_run_state, INITSM_1001_NUM_STATES, dev);
 		break;
 	}
-	fpi_ssm_set_user_data(ssm, dev);
 	fpi_ssm_start(ssm, initsm_complete);
 	return 0;
 }
@@ -1333,9 +1313,9 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data);
 static void dev_deinit(struct fp_img_dev *dev)
 {
 	void *user_data;
-	user_data = fpi_imgdev_get_user_data(dev);
+	user_data = FP_INSTANCE_DATA(FP_DEV(dev));
 	g_free(user_data);
-	libusb_release_interface(fpi_imgdev_get_usb_dev(dev), 0);
+	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
 	fpi_imgdev_close_complete(dev);
 }
 
@@ -1387,20 +1367,20 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
 	int r;
 	struct sonly_dev *sdev;
 
-	r = libusb_set_configuration(fpi_imgdev_get_usb_dev(dev), 1);
+	r = libusb_set_configuration(fpi_dev_get_usb_dev(FP_DEV(dev)), 1);
 	if (r < 0) {
 		fp_err("could not set configuration 1");
 		return r;
 	}
 
-	r = libusb_claim_interface(fpi_imgdev_get_usb_dev(dev), 0);
+	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
 	if (r < 0) {
 		fp_err("could not claim interface 0: %s", libusb_error_name(r));
 		return r;
 	}
 
 	sdev = g_malloc0(sizeof(struct sonly_dev));
-	fpi_imgdev_set_user_data(dev, sdev);
+	fp_dev_set_instance_data(FP_DEV(dev), sdev);
 	sdev->dev_model = (int)driver_data;
 	switch (driver_data) {
 	case UPEKSONLY_1000:

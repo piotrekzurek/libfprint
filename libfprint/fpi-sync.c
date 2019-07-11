@@ -20,6 +20,7 @@
 #define FP_COMPONENT "sync"
 
 #include "fp_internal.h"
+#include "fpi-dev.h"
 
 #include <config.h>
 #include <errno.h>
@@ -39,7 +40,7 @@ static void sync_open_cb(struct fp_dev *dev, int status, void *user_data)
 
 /**
  * fp_dev_open:
- * @ddev: the discovered device to open
+ * @ddev: the struct #fp_dscv_dev discovered device to open
  *
  * Opens and initialises a device. This is the function you call in order
  * to convert a #fp_dscv_dev discovered device into an actual device handle
@@ -81,9 +82,9 @@ static void sync_close_cb(struct fp_dev *dev, void *user_data)
 
 /**
  * fp_dev_close:
- * @dev: the device to close. If %NULL, function simply returns.
+ * @dev: the struct #fp_dev device to close. If %NULL, function simply returns
  *
- * Close a device. You must call this function when you are finished using
+ * Closes a device. You must call this function when you have finished using
  * a fingerprint device.
  */
 API_EXPORTED void fp_dev_close(struct fp_dev *dev)
@@ -127,12 +128,12 @@ static void enroll_stop_cb(struct fp_dev *dev, void *user_data)
 
 /**
  * fp_enroll_finger_img:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  * @print_data: a location to return the resultant enrollment data from
- * the final stage. Must be freed with fp_print_data_free() after use.
+ * the final stage. Must be freed with fp_print_data_free() after use
  * @img: location to store the scan image. accepts %NULL for no image
  * storage. If an image is returned, it must be freed with fp_img_free() after
- * use.
+ * use
  *
  * Performs an enroll stage. See [Enrolling](libfprint-Devices-operations.html#enrolling)
  * for an explanation of enroll stages.
@@ -289,9 +290,9 @@ err:
 
 /**
  * fp_enroll_finger:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  * @print_data: a location to return the resultant enrollment data from
- * the final stage. Must be freed with fp_print_data_free() after use.
+ * the final stage. Must be freed with fp_print_data_free() after use
  *
  * Performs an enroll stage. See [Enrolling](libfprint-Devices-operations.html#enrolling)
  * for an explanation of enroll stages. This function is just a shortcut to
@@ -330,14 +331,14 @@ static void verify_stop_cb(struct fp_dev *dev, void *user_data)
 
 /**
  * fp_verify_finger_img:
- * @dev: the device to perform the scan.
+ * @dev: the struct #fp_dev device to perform the scan on
  * @enrolled_print: the print to verify against. Must have been previously
- * enrolled with a device compatible to the device selected to perform the scan.
+ * enrolled with a device compatible to the device selected to perform the scan
  * @img: location to store the scan image. accepts %NULL for no image
  * storage. If an image is returned, it must be freed with fp_img_free() after
- * use.
+ * use
 
- * Performs a new scan and verify it against a previously enrolled print.
+ * Performs a new scan and verifies it against a previously enrolled print.
  * If the device is an imaging device, it can also return the image from
  * the scan, even when the verify fails with a RETRY code. It is legal to
  * call this function even on non-imaging devices, just don't expect them to
@@ -422,9 +423,9 @@ err:
 
 /**
  * fp_verify_finger:
- * @dev: the device to perform the scan.
+ * @dev: the struct #fp_dev device to perform the scan on
  * @enrolled_print: the print to verify against. Must have been previously
- * enrolled with a device compatible to the device selected to perform the scan.
+ * enrolled with a device compatible to the device selected to perform the scan
  *
  * Performs a new scan and verify it against a previously enrolled print. This
  * function is just a shortcut to calling fp_verify_finger_img() with a NULL
@@ -466,16 +467,16 @@ static void identify_stop_cb(struct fp_dev *dev, void *user_data)
 
 /**
  * fp_identify_finger_img:
- * @dev: the device to perform the scan.
+ * @dev: the struct #fp_dev device to perform the scan on
  * @print_gallery: NULL-terminated array of pointers to the prints to
  * identify against. Each one must have been previously enrolled with a device
- * compatible to the device selected to perform the scan.
+ * compatible to the device selected to perform the scan
  * @match_offset: output location to store the array index of the matched
  * gallery print (if any was found). Only valid if %FP_VERIFY_MATCH was
- * returned.
+ * returned
  * @img: location to store the scan image. accepts %NULL for no image
  * storage. If an image is returned, it must be freed with fp_img_free() after
- * use.
+ * use
 
  * Performs a new scan and attempts to identify the scanned finger against
  * a collection of previously enrolled fingerprints.
@@ -564,13 +565,13 @@ err:
 
 /**
  * fp_identify_finger:
- * @dev: the device to perform the scan.
+ * @dev: the struct #fp_dev device to perform the scan on
  * @print_gallery: %NULL-terminated array of pointers to the prints to
  * identify against. Each one must have been previously enrolled with a device
- * compatible to the device selected to perform the scan.
+ * compatible to the device selected to perform the scan
  * @match_offset: output location to store the array index of the matched
  * gallery print (if any was found). Only valid if %FP_VERIFY_MATCH was
- * returned.
+ * returned
 
  * Performs a new scan and attempts to identify the scanned finger against a
  * collection of previously enrolled fingerprints. This function is just a
@@ -610,10 +611,10 @@ static void capture_stop_cb(struct fp_dev *dev, void *user_data)
 }
 /**
  * fp_dev_img_capture:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  * @unconditional: whether to unconditionally capture an image, or to only capture when a finger is detected
  * @img: a location to return the captured image. Must be freed with
- * fp_img_free() after use.
+ * fp_img_free() after use
  *
  * Captures a #fp_img from a device. The returned image is the raw
  * image provided by the device, you may wish to [standardize](libfprint-Image-operations.html#img_std) it.
@@ -627,7 +628,7 @@ static void capture_stop_cb(struct fp_dev *dev, void *user_data)
  *
  * Returns: 0 on success, non-zero on error. -ENOTSUP indicates that either the
  * @unconditional flag was set but the device does not support this, or that the
- * device does not support imaging.
+ * device does not support imaging
  */
 API_EXPORTED int fp_dev_img_capture(struct fp_dev *dev, int unconditional,
 	struct fp_img **img)

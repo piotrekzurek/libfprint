@@ -27,7 +27,7 @@
 /* Callback for async_write */
 static void async_write_callback(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
 
 	int transferred = transfer->actual_length, error =
@@ -36,14 +36,14 @@ static void async_write_callback(struct libusb_transfer *transfer)
 	if (error != 0) {
 		fp_err("USB write transfer: %s", libusb_error_name(error));
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
 	if (transferred != len) {
 		fp_err("Written only %d of %d bytes", transferred, len);
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
@@ -51,13 +51,16 @@ static void async_write_callback(struct libusb_transfer *transfer)
 }
 
 /* Send data to EP1, the only out endpoint */
-static void async_write(struct fpi_ssm *ssm, void *data, int len)
+static void
+async_write(fpi_ssm           *ssm,
+	    struct fp_img_dev *dev,
+	    void              *data,
+	    int                len)
 {
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct libusb_device_handle *usb_dev = fpi_imgdev_get_usb_dev(idev);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct libusb_device_handle *usb_dev = fpi_dev_get_usb_dev(FP_DEV(dev));
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
-	vdev->transfer = libusb_alloc_transfer(0);
+	vdev->transfer = fpi_usb_alloc();
 	vdev->transfer->flags |= LIBUSB_TRANSFER_FREE_TRANSFER;
 	libusb_fill_bulk_transfer(vdev->transfer, usb_dev, 0x01, data, len,
 				  async_write_callback, ssm, VFS_USB_TIMEOUT);
@@ -67,7 +70,7 @@ static void async_write(struct fpi_ssm *ssm, void *data, int len)
 /* Callback for async_read */
 static void async_read_callback(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
 
 	int transferred = transfer->actual_length, error =
@@ -78,14 +81,14 @@ static void async_read_callback(struct libusb_transfer *transfer)
 		fp_err("USB read transfer on endpoint %d: %s", ep - 0x80,
 		       libusb_error_name(error));
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
 	if (transferred != len) {
 		fp_err("Received %d instead of %d bytes", transferred, len);
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
@@ -93,15 +96,20 @@ static void async_read_callback(struct libusb_transfer *transfer)
 }
 
 /* Receive data from the given ep and compare with expected */
-static void async_read(struct fpi_ssm *ssm, int ep, void *data, int len)
+static void
+async_read(fpi_ssm           *ssm,
+	   struct fp_img_dev *dev,
+	   int                ep,
+	   void              *data,
+	   int                len)
 {
 	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct libusb_device_handle *usb_dev = fpi_imgdev_get_usb_dev(idev);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct libusb_device_handle *usb_dev = fpi_dev_get_usb_dev(FP_DEV(idev));
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
 	ep |= LIBUSB_ENDPOINT_IN;
 
-	vdev->transfer = libusb_alloc_transfer(0);
+	vdev->transfer = fpi_usb_alloc();
 	vdev->transfer->flags |= LIBUSB_TRANSFER_FREE_TRANSFER;
 
 	/* 0x83 is the only interrupt endpoint */
@@ -119,7 +127,7 @@ static void async_read(struct fpi_ssm *ssm, int ep, void *data, int len)
 /* Callback for async_read */
 static void async_abort_callback(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
 
 	int transferred = transfer->actual_length, error = transfer->status;
@@ -134,7 +142,7 @@ static void async_abort_callback(struct libusb_transfer *transfer)
 	if (error != 0) {
 		fp_err("USB write transfer: %s", libusb_error_name(error));
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
@@ -147,18 +155,18 @@ static void async_abort_callback(struct libusb_transfer *transfer)
 }
 
 /* Receive data from the given ep and compare with expected */
-static void async_abort(struct fpi_ssm *ssm, int ep)
+static void async_abort(fpi_ssm *ssm, int ep)
 {
 	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct libusb_device_handle *usb_dev = fpi_imgdev_get_usb_dev(idev);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct libusb_device_handle *usb_dev = fpi_dev_get_usb_dev(FP_DEV(idev));
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
 	int len = VFS_USB_BUFFER_SIZE;
 	unsigned char *data = g_malloc(VFS_USB_BUFFER_SIZE);
 
 	ep |= LIBUSB_ENDPOINT_IN;
 
-	vdev->transfer = libusb_alloc_transfer(0);
+	vdev->transfer = fpi_usb_alloc();
 	vdev->transfer->flags |=
 	    LIBUSB_TRANSFER_FREE_TRANSFER | LIBUSB_TRANSFER_FREE_BUFFER;
 
@@ -259,7 +267,7 @@ static struct fp_img *prepare_image(struct vfs_dev_t *vdev)
 /* Processes and submits image after fingerprint received */
 static void submit_image(struct fp_img_dev *idev)
 {
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
 	/* We were not asked to submit image actually */
 	if (!vdev->active)
@@ -279,20 +287,21 @@ static void submit_image(struct fp_img_dev *idev)
 /* Proto functions */
 
 /* SSM loop for clear_ep2 */
-static void clear_ep2_ssm(struct fpi_ssm *ssm)
+static void
+clear_ep2_ssm(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
+	struct fp_img_dev *idev = user_data;
 
 	short result;
 	char command04 = 0x04;
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case SUBSM1_COMMAND_04:
-		async_write(ssm, &command04, sizeof(command04));
+		async_write(ssm, idev, &command04, sizeof(command04));
 		break;
 
 	case SUBSM1_RETURN_CODE:
-		async_read(ssm, 1, &result, sizeof(result));
+		async_read(ssm, idev, 1, &result, sizeof(result));
 		break;
 
 	case SUBSM1_ABORT_2:
@@ -302,36 +311,35 @@ static void clear_ep2_ssm(struct fpi_ssm *ssm)
 	default:
 		fp_err("Unknown SUBSM1 state");
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 	}
 }
 
 /* Send command to clear EP2 */
-static void clear_ep2(struct fpi_ssm *ssm)
+static void
+clear_ep2(fpi_ssm           *ssm,
+	  struct fp_img_dev *idev)
 {
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-
-	struct fpi_ssm *subsm =
-	    fpi_ssm_new(fpi_imgdev_get_dev(idev), clear_ep2_ssm, SUBSM1_STATES);
-	fpi_ssm_set_user_data(subsm, idev);
+	fpi_ssm *subsm =
+	    fpi_ssm_new(FP_DEV(idev), clear_ep2_ssm, SUBSM1_STATES, idev);
 	fpi_ssm_start_subsm(ssm, subsm);
 }
 
-static void send_control_packet_ssm(struct fpi_ssm *ssm)
+static void send_control_packet_ssm(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct fp_img_dev *idev = user_data;
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(_dev);
 
 	short result;
 	unsigned char *commit_result = NULL;
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case SUBSM2_SEND_CONTROL:
-		async_write(ssm, vdev->control_packet, VFS_CONTROL_PACKET_SIZE);
+		async_write(ssm, idev, vdev->control_packet, VFS_CONTROL_PACKET_SIZE);
 		break;
 
 	case SUBSM2_RETURN_CODE:
-		async_read(ssm, 1, &result, sizeof(result));
+		async_read(ssm, idev, 1, &result, sizeof(result));
 		break;
 
 	case SUBSM2_SEND_COMMIT:
@@ -342,19 +350,19 @@ static void send_control_packet_ssm(struct fpi_ssm *ssm)
 			break;
 		}
 		/* commit_out in Windows differs in each commit, but I send the same each time */
-		async_write(ssm, commit_out, sizeof(commit_out));
+		async_write(ssm, idev, commit_out, sizeof(commit_out));
 		break;
 
 	case SUBSM2_COMMIT_RESPONSE:
 		commit_result = g_malloc(VFS_COMMIT_RESPONSE_SIZE);
-		async_read(ssm, 1, commit_result, VFS_COMMIT_RESPONSE_SIZE);
+		async_read(ssm, idev, 1, commit_result, VFS_COMMIT_RESPONSE_SIZE);
 		break;
 
 	case SUBSM2_READ_EMPTY_INTERRUPT:
 		/* I don't know how to check result, it could be different */
 		g_free(commit_result);
 
-		async_read(ssm, 3, vdev->interrupt, VFS_INTERRUPT_SIZE);
+		async_read(ssm, idev, 3, vdev->interrupt, VFS_INTERRUPT_SIZE);
 		break;
 
 	case SUBSM2_ABORT_3:
@@ -363,7 +371,7 @@ static void send_control_packet_ssm(struct fpi_ssm *ssm)
 		    (vdev->interrupt, empty_interrupt, VFS_INTERRUPT_SIZE)) {
 			fp_err("Unknown SUBSM2 state");
 			fpi_imgdev_session_error(idev, -EIO);
-			fpi_ssm_mark_aborted(ssm, -EIO);
+			fpi_ssm_mark_failed(ssm, -EIO);
 			break;
 		}
 		async_abort(ssm, 3);
@@ -372,7 +380,7 @@ static void send_control_packet_ssm(struct fpi_ssm *ssm)
 	case SUBSM2_CLEAR_EP2:
 		/* After turn_on Windows doesn't clear EP2 */
 		if (vdev->control_packet != turn_on)
-			clear_ep2(ssm);
+			clear_ep2(ssm, idev);
 		else
 			fpi_ssm_next_state(ssm);
 		break;
@@ -380,18 +388,17 @@ static void send_control_packet_ssm(struct fpi_ssm *ssm)
 	default:
 		fp_err("Unknown SUBSM2 state");
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 	}
 }
 
 /* Send device state control packet */
-static void send_control_packet(struct fpi_ssm *ssm)
+static void
+send_control_packet(fpi_ssm           *ssm,
+		    struct fp_img_dev *idev)
 {
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-
-	struct fpi_ssm *subsm =
-	    fpi_ssm_new(fpi_imgdev_get_dev(idev), send_control_packet_ssm, SUBSM2_STATES);
-	fpi_ssm_set_user_data(subsm, idev);
+	fpi_ssm *subsm =
+	    fpi_ssm_new(FP_DEV(idev), send_control_packet_ssm, SUBSM2_STATES, idev);
 	fpi_ssm_start_subsm(ssm, subsm);
 }
 
@@ -406,9 +413,9 @@ static void clear_data(struct vfs_dev_t *vdev)
 /* After receiving interrupt from EP3 */
 static void interrupt_callback(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
 	char *interrupt = vdev->interrupt;
 	int error = transfer->status, transferred = transfer->actual_length;
@@ -423,7 +430,7 @@ static void interrupt_callback(struct libusb_transfer *transfer)
 		fp_err("USB read interrupt transfer: %s",
 		       libusb_error_name(error));
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
@@ -432,7 +439,7 @@ static void interrupt_callback(struct libusb_transfer *transfer)
 		fp_err("Unknown interrupt size %d", transferred);
 		/* Abort ssm */
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
@@ -461,14 +468,14 @@ static void interrupt_callback(struct libusb_transfer *transfer)
 
 	/* Abort ssm */
 	fpi_imgdev_session_error(idev, -EIO);
-	fpi_ssm_mark_aborted(ssm, -EIO);
+	fpi_ssm_mark_failed(ssm, -EIO);
 }
 
 static void receive_callback(struct libusb_transfer *transfer)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
+	fpi_ssm *ssm = transfer->user_data;
 	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
 	int transferred = transfer->actual_length, error = transfer->status;
 
@@ -476,7 +483,7 @@ static void receive_callback(struct libusb_transfer *transfer)
 		fp_err("USB read transfer: %s", libusb_error_name(error));
 
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 		return;
 	}
 
@@ -492,11 +499,12 @@ static void receive_callback(struct libusb_transfer *transfer)
 }
 
 /* Stub to keep SSM alive when waiting an interrupt */
-static void wait_interrupt(void *data)
+static void
+wait_interrupt(struct fp_dev *dev,
+	       void          *data)
 {
-	struct fpi_ssm *ssm = data;
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	fpi_ssm *ssm = data;
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(dev);
 
 	/* Keep sleeping while this flag is on */
 	if (vdev->wait_interrupt)
@@ -504,25 +512,20 @@ static void wait_interrupt(void *data)
 }
 
 /* SSM stub to prepare device to another scan after orange light was on */
-static void another_scan(void *data)
+static void
+another_scan(struct fp_dev *dev,
+	     void          *data)
 {
-	struct fpi_ssm *ssm = data;
+	fpi_ssm *ssm = data;
 	fpi_ssm_jump_to_state(ssm, SSM_TURN_ON);
 }
 
-/* Another SSM stub to continue after waiting for probable vdev->active changes */
-static void scan_completed(void *data)
-{
-	struct fpi_ssm *ssm = data;
-	fpi_ssm_next_state(ssm);
-}
-
 /* Main SSM loop */
-static void activate_ssm(struct fpi_ssm *ssm)
+static void activate_ssm(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct libusb_device_handle *usb_dev = fpi_imgdev_get_usb_dev(idev);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct fp_img_dev *idev = user_data;
+	struct libusb_device_handle *usb_dev = fpi_dev_get_usb_dev(FP_DEV(idev));
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(_dev);
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case SSM_INITIAL_ABORT_1:
@@ -538,14 +541,14 @@ static void activate_ssm(struct fpi_ssm *ssm)
 		break;
 
 	case SSM_CLEAR_EP2:
-		clear_ep2(ssm);
+		clear_ep2(ssm, idev);
 		break;
 
 	case SSM_TURN_OFF:
 		/* Set control_packet argument */
 		vdev->control_packet = turn_off;
 
-		send_control_packet(ssm);
+		send_control_packet(ssm, idev);
 		break;
 
 	case SSM_TURN_ON:
@@ -562,7 +565,7 @@ static void activate_ssm(struct fpi_ssm *ssm)
 		/* Set control_packet argument */
 		vdev->control_packet = turn_on;
 
-		send_control_packet(ssm);
+		send_control_packet(ssm, idev);
 		break;
 
 	case SSM_ASK_INTERRUPT:
@@ -575,7 +578,7 @@ static void activate_ssm(struct fpi_ssm *ssm)
 		}
 
 		/* Asyncronously enquire an interrupt */
-		vdev->transfer = libusb_alloc_transfer(0);
+		vdev->transfer = fpi_usb_alloc();
 		vdev->transfer->flags |= LIBUSB_TRANSFER_FREE_TRANSFER;
 		libusb_fill_interrupt_transfer(vdev->transfer, usb_dev, 0x83,
 					       vdev->interrupt,
@@ -601,7 +604,7 @@ static void activate_ssm(struct fpi_ssm *ssm)
 		}
 
 		if (vdev->wait_interrupt)
-			fpi_timeout_add(VFS_SSM_TIMEOUT, wait_interrupt, ssm);
+			fpi_timeout_add(VFS_SSM_TIMEOUT, wait_interrupt, _dev, ssm);
 		break;
 
 	case SSM_RECEIVE_FINGER:
@@ -625,7 +628,7 @@ static void activate_ssm(struct fpi_ssm *ssm)
 		}
 
 		/* Receive chunk of data */
-		vdev->transfer = libusb_alloc_transfer(0);
+		vdev->transfer = fpi_usb_alloc();
 		vdev->transfer->flags |= LIBUSB_TRANSFER_FREE_TRANSFER;
 		libusb_fill_bulk_transfer(vdev->transfer, usb_dev, 0x82,
 					  (void *)vdev->lines_buffer +
@@ -640,7 +643,7 @@ static void activate_ssm(struct fpi_ssm *ssm)
 		clear_data(vdev);
 
 		/* Wait for probable vdev->active changing */
-		fpi_timeout_add(VFS_SSM_TIMEOUT, scan_completed, ssm);
+		fpi_timeout_add(VFS_SSM_TIMEOUT, fpi_ssm_next_state_timeout_cb, _dev, ssm);
 		break;
 
 	case SSM_NEXT_RECEIVE:
@@ -653,28 +656,27 @@ static void activate_ssm(struct fpi_ssm *ssm)
 		/* Set control_packet argument */
 		vdev->control_packet = next_receive_1;
 
-		send_control_packet(ssm);
+		send_control_packet(ssm, idev);
 		break;
 
 	case SSM_WAIT_ANOTHER_SCAN:
 		/* Orange light is on now */
-		fpi_timeout_add(VFS_SSM_ORANGE_TIMEOUT, another_scan, ssm);
+		fpi_timeout_add(VFS_SSM_ORANGE_TIMEOUT, another_scan, _dev, ssm);
 		break;
 
 	default:
 		fp_err("Unknown state");
 		fpi_imgdev_session_error(idev, -EIO);
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 	}
 }
 
 /* Driver functions */
 
 /* Callback for dev_activate ssm */
-static void dev_activate_callback(struct fpi_ssm *ssm)
+static void dev_activate_callback(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *idev = fpi_ssm_get_user_data(ssm);
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(_dev);
 
 	vdev->ssm_active = 0;
 
@@ -684,15 +686,14 @@ static void dev_activate_callback(struct fpi_ssm *ssm)
 /* Activate device */
 static int dev_activate(struct fp_img_dev *idev, enum fp_imgdev_state state)
 {
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
 	/* Initialize flags */
 	vdev->active = 1;
 	vdev->need_report = 1;
 	vdev->ssm_active = 1;
 
-	struct fpi_ssm *ssm = fpi_ssm_new(fpi_imgdev_get_dev(idev), activate_ssm, SSM_STATES);
-	fpi_ssm_set_user_data(ssm, idev);
+	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(idev), activate_ssm, SSM_STATES, idev);
 	fpi_ssm_start(ssm, dev_activate_callback);
 	return 0;
 }
@@ -700,7 +701,7 @@ static int dev_activate(struct fp_img_dev *idev, enum fp_imgdev_state state)
 /* Deactivate device */
 static void dev_deactivate(struct fp_img_dev *idev)
 {
-	struct vfs_dev_t *vdev = fpi_imgdev_get_user_data(idev);
+	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
 	if (!vdev->ssm_active) {
 		fpi_imgdev_deactivate_complete(idev);
@@ -713,10 +714,10 @@ static void dev_deactivate(struct fp_img_dev *idev)
 }
 
 /* Callback for dev_open ssm */
-static void dev_open_callback(struct fpi_ssm *ssm)
+static void dev_open_callback(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	/* Notify open complete */
-	fpi_imgdev_open_complete(fpi_ssm_get_user_data(ssm), 0);
+	fpi_imgdev_open_complete(user_data, 0);
 	fpi_ssm_free(ssm);
 }
 
@@ -726,7 +727,7 @@ static int dev_open(struct fp_img_dev *idev, unsigned long driver_data)
 	struct vfs_dev_t *vdev;
 
 	/* Claim usb interface */
-	int error = libusb_claim_interface(fpi_imgdev_get_usb_dev(idev), 0);
+	int error = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(idev)), 0);
 	if (error < 0) {
 		/* Interface not claimed, return error */
 		fp_err("could not claim interface 0");
@@ -735,11 +736,10 @@ static int dev_open(struct fp_img_dev *idev, unsigned long driver_data)
 
 	/* Initialize private structure */
 	vdev = g_malloc0(sizeof(struct vfs_dev_t));
-	fpi_imgdev_set_user_data(idev, vdev);
+	fp_dev_set_instance_data(FP_DEV(idev), vdev);
 
 	/* Clearing previous device state */
-	struct fpi_ssm *ssm = fpi_ssm_new(fpi_imgdev_get_dev(idev), activate_ssm, SSM_STATES);
-	fpi_ssm_set_user_data(ssm, idev);
+	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(idev), activate_ssm, SSM_STATES, idev);
 	fpi_ssm_start(ssm, dev_open_callback);
 	return 0;
 }
@@ -750,11 +750,11 @@ static void dev_close(struct fp_img_dev *idev)
 	struct vfs_dev_t *vdev;
 
 	/* Release private structure */
-	vdev = fpi_imgdev_get_user_data(idev);
+	vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 	g_free(vdev);
 
 	/* Release usb interface */
-	libusb_release_interface(fpi_imgdev_get_usb_dev(idev), 0);
+	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(idev)), 0);
 
 	/* Notify close complete */
 	fpi_imgdev_close_complete(idev);

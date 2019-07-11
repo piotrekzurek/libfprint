@@ -32,9 +32,23 @@
 
 #define DIR_PERMS 0700
 
+struct fpi_print_data_fp2 {
+	char prefix[3];
+	uint16_t driver_id;
+	uint32_t devtype;
+	unsigned char data_type;
+	unsigned char data[0];
+} __attribute__((__packed__));
+
+struct fpi_print_data_item_fp2 {
+	uint32_t length;
+	unsigned char data[0];
+} __attribute__((__packed__));
+
 /**
  * SECTION: print_data
  * @title: Stored prints
+ * @short_description: Stored prints functions
  *
  * Stored prints are represented by a structure named #fp_print_data.
  * Stored prints are originally obtained from an enrollment function such as
@@ -48,6 +62,16 @@
  * you to convert print data to a byte string, and to reconstruct stored prints
  * from such data at a later point. You are welcome to store these byte strings
  * in any fashion that suits you.
+ */
+
+/*
+ * SECTION: fpi-data
+ * @title: Stored prints creation
+ * @short_description: Stored prints creation functions
+ *
+ * Stored print can be loaded and created by certain drivers which do their own
+ * print matching in hardware. Most drivers will not be using those functions.
+ * See #fp_print_data for the public API counterpart.
  */
 
 static char *base_store = NULL;
@@ -106,7 +130,7 @@ static struct fp_print_data *print_data_new(uint16_t driver_id,
 	return data;
 }
 
-void fpi_print_data_item_free(struct fp_print_data_item *item)
+static void fpi_print_data_item_free(struct fp_print_data_item *item)
 {
 	g_free(item);
 }
@@ -123,6 +147,19 @@ struct fp_print_data *fpi_print_data_new(struct fp_dev *dev)
 {
 	return print_data_new(dev->drv->id, dev->devtype,
 		fpi_driver_get_data_type(dev->drv));
+}
+
+struct fp_print_data_item *
+fpi_print_data_get_item(struct fp_print_data *data)
+{
+	return data->prints->data;
+}
+
+void
+fpi_print_data_add_item(struct fp_print_data      *data,
+			struct fp_print_data_item *item)
+{
+	data->prints = g_slist_prepend(data->prints, item);
 }
 
 /**
@@ -354,6 +391,7 @@ API_EXPORTED int fp_print_data_save(struct fp_print_data *data,
 	r = g_mkdir_with_parents(dirpath, DIR_PERMS);
 	if (r < 0) {
 		fp_err("couldn't create storage directory");
+		free(buf);
 		g_free(path);
 		g_free(dirpath);
 		return r;
@@ -445,7 +483,7 @@ API_EXPORTED int fp_print_data_load(struct fp_dev *dev,
 	enum fp_finger finger, struct fp_print_data **data)
 {
 	gchar *path;
-	struct fp_print_data *fdata;
+	struct fp_print_data *fdata = NULL;
 	int r;
 
 	if (!base_store)
@@ -560,6 +598,7 @@ API_EXPORTED uint32_t fp_print_data_get_devtype(struct fp_print_data *data)
 /**
  * SECTION:dscv_print
  * @title: Print discovery (deprecated)
+ * @short_description: Print discovery functions
  *
  * The [stored print](libfprint-Stored-prints.html) documentation detailed a simple API
  * for storing per-device prints for a single user, namely
@@ -695,9 +734,7 @@ API_EXPORTED struct fp_dscv_print **fp_discover_prints(void)
 	GError *err = NULL;
 	GSList *tmplist = NULL;
 	GSList *elem;
-	unsigned int tmplist_len;
-	struct fp_dscv_print **list;
-	unsigned int i;
+	GPtrArray *array;
 
 	if (!base_store)
 		storage_setup();
@@ -732,15 +769,17 @@ API_EXPORTED struct fp_dscv_print **fp_discover_prints(void)
 	}
 
 	g_dir_close(dir);
-	tmplist_len = g_slist_length(tmplist);
-	list = g_malloc(sizeof(*list) * (tmplist_len + 1));
-	elem = tmplist;
-	for (i = 0; i < tmplist_len; i++, elem = g_slist_next(elem))
-		list[i] = elem->data;
-	list[tmplist_len] = NULL; /* NULL-terminate */
+
+	if (tmplist == NULL)
+		return NULL;
+
+	array = g_ptr_array_new();
+	for (elem = tmplist; elem != NULL; elem = elem->next)
+		g_ptr_array_add(array, elem->data);
+	g_ptr_array_add(array, NULL);
 
 	g_slist_free(tmplist);
-	return list;
+	return (struct fp_dscv_print **) g_ptr_array_free(array, FALSE);
 }
 
 /**

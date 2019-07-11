@@ -33,6 +33,7 @@ GSList *opened_devices = NULL;
 /**
  * SECTION:discovery
  * @title: Device discovery
+ * @short_description: Device discovery functions
  *
  * These functions allow you to scan the system for supported fingerprint
  * scanning hardware. This is your starting point when integrating libfprint
@@ -47,6 +48,7 @@ GSList *opened_devices = NULL;
 /**
  * SECTION:drv
  * @title: Driver operations
+ * @short_description: Driver operation functions
  *
  * Internally, libfprint is abstracted into various drivers to communicate
  * with the different types of supported fingerprint readers. libfprint works
@@ -61,6 +63,7 @@ GSList *opened_devices = NULL;
 /**
  * SECTION:dev
  * @title: Devices operations
+ * @short_description: Device operation functions
  *
  * In order to interact with fingerprint scanners, your software will
  * interface primarily with libfprint's representation of devices, detailed
@@ -109,6 +112,27 @@ GSList *opened_devices = NULL;
  * on a particular device. Your application must be able to cope with the
  * fact that libfprint does support regular operations (e.g. enrolling and
  * verification) on some devices which do not provide images.
+ */
+
+/**
+ * SECTION:fpi-core
+ * @title: Driver structures
+ * @short_description: Driver structures
+ *
+ * Driver structures need to be defined inside each driver in
+ * order for the core library to know what function to call, and the capabilities
+ * of the driver and the devices it supports.
+ */
+
+/**
+ * SECTION:fpi-core-img
+ * @title: Image driver structures
+ * @short_description: Image driver structures
+ *
+ * Image driver structures need to be defined inside each image driver in
+ * order for the core library to know what function to call, and the capabilities
+ * of the driver and the devices it supports. Its structure is based off the
+ * #fp_driver struct.
  */
 
 static GSList *registered_drivers = NULL;
@@ -248,7 +272,7 @@ static struct fp_dscv_dev *discover_dev(libusb_device *udev)
  * Scans the system and returns a list of discovered devices. This is your
  * entry point into finding a fingerprint reader to operate.
  *
- * Returns: a %NULL-terminated list of discovered devices. Must be freed with
+ * Returns: a nul-terminated list of discovered devices. Must be freed with
  * fp_dscv_devs_free() after use.
  */
 API_EXPORTED struct fp_dscv_dev **fp_discover_devs(void)
@@ -259,8 +283,7 @@ API_EXPORTED struct fp_dscv_dev **fp_discover_devs(void)
 	int r;
 	int i = 0;
 
-	if (registered_drivers == NULL)
-		return NULL;
+	g_return_val_if_fail (registered_drivers != NULL, NULL);
 
 	r = libusb_get_device_list(fpi_usb_ctx, &devs);
 	if (r < 0) {
@@ -328,7 +351,10 @@ API_EXPORTED struct fp_driver *fp_dscv_dev_get_driver(struct fp_dscv_dev *dev)
  * fp_dscv_dev_get_driver_id:
  * @dev: a discovered fingerprint device
  *
- * Returns: the ID for the underlying driver for that device
+ * Returns a unique driver identifier for the underlying driver
+ * for that device.
+ *
+ * Returns: the ID for #dev
  */
 API_EXPORTED uint16_t fp_dscv_dev_get_driver_id(struct fp_dscv_dev *dev)
 {
@@ -454,7 +480,7 @@ API_EXPORTED struct fp_dscv_dev *fp_dscv_dev_for_dscv_print(struct fp_dscv_dev *
 
 /**
  * fp_dev_get_driver:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  *
  * Get the #fp_driver for a fingerprint device.
  *
@@ -467,7 +493,7 @@ API_EXPORTED struct fp_driver *fp_dev_get_driver(struct fp_dev *dev)
 
 /**
  * fp_dev_get_nr_enroll_stages:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  *
  * Gets the number of [enroll stages](intro.html#enrollment) required to enroll a
  * fingerprint with the device.
@@ -481,7 +507,7 @@ API_EXPORTED int fp_dev_get_nr_enroll_stages(struct fp_dev *dev)
 
 /**
  * fp_dev_get_devtype:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  *
  * Gets the [devtype](advanced-topics.html#device-types) for a device.
  *
@@ -494,7 +520,7 @@ API_EXPORTED uint32_t fp_dev_get_devtype(struct fp_dev *dev)
 
 /**
  * fp_dev_supports_print_data:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  * @data: the stored print
  *
  * Determines if a stored print is compatible with a certain device.
@@ -511,7 +537,7 @@ API_EXPORTED int fp_dev_supports_print_data(struct fp_dev *dev,
 
 /**
  * fp_dev_supports_dscv_print:
- * @dev: the device
+ * @dev: the struct #fp_dev device
  * @print: the discovered print
  *
  * Determines if a #fp_dscv_print discovered print appears to be compatible
@@ -526,50 +552,6 @@ API_EXPORTED int fp_dev_supports_dscv_print(struct fp_dev *dev,
 {
 	return fpi_print_data_compatible(dev->drv->id, dev->devtype,
 		0, print->driver_id, print->devtype, 0);
-}
-
-libusb_device_handle *
-fpi_dev_get_usb_dev(struct fp_dev *dev)
-{
-	return dev->udev;
-}
-
-void *
-fpi_dev_get_user_data (struct fp_dev *dev)
-{
-	return dev->priv;
-}
-
-void
-fpi_dev_set_user_data (struct fp_dev *dev,
-	void *user_data)
-{
-	dev->priv = user_data;
-}
-
-int
-fpi_dev_get_nr_enroll_stages(struct fp_dev *dev)
-{
-	return dev->nr_enroll_stages;
-}
-
-void
-fpi_dev_set_nr_enroll_stages(struct fp_dev *dev,
-	int nr_enroll_stages)
-{
-	dev->nr_enroll_stages = nr_enroll_stages;
-}
-
-struct fp_print_data *
-fpi_dev_get_verify_data(struct fp_dev *dev)
-{
-	return dev->verify_data;
-}
-
-enum fp_dev_state
-fpi_dev_get_dev_state(struct fp_dev *dev)
-{
-	return dev->state;
 }
 
 /**
@@ -624,16 +606,27 @@ API_EXPORTED enum fp_scan_type fp_driver_get_scan_type(struct fp_driver *drv)
 	return drv->scan_type;
 }
 
-static struct fp_img_dev *dev_to_img_dev(struct fp_dev *dev)
+/**
+ * fp_driver_supports_imaging:
+ * @drv: the driver
+ *
+ * Determines if a driver has imaging capabilities. If a driver has imaging
+ * capabilities you are able to perform imaging operations such as retrieving
+ * scan images using fp_dev_img_capture(). However, not all drivers support
+ * imaging devices – some do all processing in hardware. This function will
+ * indicate which class a device in question falls into.
+ *
+ * Returns: 1 if the device is an imaging device, 0 if the device does not
+ * provide images to the host computer
+ */
+API_EXPORTED int fp_driver_supports_imaging(struct fp_driver *drv)
 {
-	if (dev->drv->type != DRIVER_IMAGING)
-		return NULL;
-	return dev->priv;
+	return drv->capture_start != NULL;
 }
 
 /**
  * fp_dev_supports_imaging:
- * @dev: the fingerprint device
+ * @dev: the struct #fp_dev device
  *
  * Determines if a device has imaging capabilities. If a device has imaging
  * capabilities you are able to perform imaging operations such as retrieving
@@ -651,7 +644,7 @@ API_EXPORTED int fp_dev_supports_imaging(struct fp_dev *dev)
 
 /**
  * fp_dev_supports_identification:
- * @dev: the fingerprint device
+ * @dev: the struct #fp_dev device
  *
  * Determines if a device is capable of [identification](intro.html#identification)
  * through fp_identify_finger() and similar. Not all devices support this
@@ -666,7 +659,7 @@ API_EXPORTED int fp_dev_supports_identification(struct fp_dev *dev)
 
 /**
  * fp_dev_get_img_width:
- * @dev: the fingerprint device
+ * @dev: the struct #fp_dev device
  *
  * Gets the expected width of images that will be captured from the device.
  * This function will return -1 for devices that are not
@@ -678,18 +671,17 @@ API_EXPORTED int fp_dev_supports_identification(struct fp_dev *dev)
  */
 API_EXPORTED int fp_dev_get_img_width(struct fp_dev *dev)
 {
-	struct fp_img_dev *imgdev = dev_to_img_dev(dev);
-	if (!imgdev) {
+	if (!dev->img_dev) {
 		fp_dbg("get image width for non-imaging device");
 		return -1;
 	}
 
-	return fpi_imgdev_get_img_width(imgdev);
+	return fpi_imgdev_get_img_width(dev->img_dev);
 }
 
 /**
  * fp_dev_get_img_height:
- * @dev: the fingerprint device
+ * @dev: the struct #fp_dev device
  *
  * Gets the expected height of images that will be captured from the device.
  * This function will return -1 for devices that are not
@@ -701,13 +693,12 @@ API_EXPORTED int fp_dev_get_img_width(struct fp_dev *dev)
  */
 API_EXPORTED int fp_dev_get_img_height(struct fp_dev *dev)
 {
-	struct fp_img_dev *imgdev = dev_to_img_dev(dev);
-	if (!imgdev) {
+	if (!dev->img_dev) {
 		fp_dbg("get image height for non-imaging device");
 		return -1;
 	}
 
-	return fpi_imgdev_get_img_height(imgdev);
+	return fpi_imgdev_get_img_height(dev->img_dev);
 }
 
 /**

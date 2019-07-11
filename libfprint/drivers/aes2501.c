@@ -36,6 +36,11 @@ static void complete_deactivation(struct fp_img_dev *dev);
 
 #define BULK_TIMEOUT 4000
 
+#define FINGER_DETECTION_LEN	20
+#define READ_REGS_LEN		126
+#define READ_REGS_RESP_LEN	159
+#define STRIP_CAPTURE_LEN	1705
+
 /*
  * The AES2501 is an imaging device using a swipe-type sensor. It samples
  * the finger at preprogrammed intervals, sending a 192x16 frame to the
@@ -83,9 +88,12 @@ struct aes2501_read_regs {
 	void *user_data;
 };
 
-static void read_regs_data_cb(struct libusb_transfer *transfer)
+static void read_regs_data_cb(struct libusb_transfer *transfer,
+			      struct fp_dev          *dev,
+			      fpi_ssm                *ssm,
+			      void                   *user_data)
 {
-	struct aes2501_read_regs *rdata = transfer->user_data;
+	struct aes2501_read_regs *rdata = user_data;
 	unsigned char *retdata = NULL;
 	int r;
 
@@ -100,14 +108,12 @@ static void read_regs_data_cb(struct libusb_transfer *transfer)
 
 	rdata->callback(rdata->dev, r, retdata, rdata->user_data);
 	g_free(rdata);
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
 }
 
 static void read_regs_rq_cb(struct fp_img_dev *dev, int result, void *user_data)
 {
 	struct aes2501_read_regs *rdata = user_data;
-	struct libusb_transfer *transfer;
+	fpi_usb_transfer *transfer;
 	unsigned char *data;
 	int r;
 
@@ -115,20 +121,18 @@ static void read_regs_rq_cb(struct fp_img_dev *dev, int result, void *user_data)
 	if (result != 0)
 		goto err;
 
-	transfer = libusb_alloc_transfer(0);
-	if (!transfer) {
-		result = -ENOMEM;
-		goto err;
-	}
+	data = g_malloc(READ_REGS_LEN);
+	transfer = fpi_usb_fill_bulk_transfer(FP_DEV(dev),
+					      NULL,
+					      EP_IN,
+					      data,
+					      READ_REGS_LEN,
+					      read_regs_data_cb,
+					      rdata,
+					      BULK_TIMEOUT);
 
-	data = g_malloc(126);
-	libusb_fill_bulk_transfer(transfer, fpi_imgdev_get_usb_dev(dev), EP_IN, data, 126,
-		read_regs_data_cb, rdata, BULK_TIMEOUT);
-
-	r = libusb_submit_transfer(transfer);
+	r = fpi_usb_submit_transfer(transfer);
 	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(transfer);
 		result = -EIO;
 		goto err;
 	}
@@ -180,53 +184,48 @@ static int regval_from_dump(unsigned char *data, uint8_t target)
 static void generic_write_regv_cb(struct fp_img_dev *dev, int result,
 	void *user_data)
 {
-	struct fpi_ssm *ssm = user_data;
+	fpi_ssm *ssm = user_data;
 	if (result == 0)
 		fpi_ssm_next_state(ssm);
 	else
-		fpi_ssm_mark_aborted(ssm, result);
+		fpi_ssm_mark_failed(ssm, result);
 }
 
 /* check that read succeeded but ignore all data */
-static void generic_ignore_data_cb(struct libusb_transfer *transfer)
+static void generic_ignore_data_cb(struct libusb_transfer *transfer,
+				   struct fp_dev          *dev,
+				   fpi_ssm                *ssm,
+				   void                   *user_data)
 {
-	struct fpi_ssm *ssm = transfer->user_data;
-
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
-		fpi_ssm_mark_aborted(ssm, -EIO);
+		fpi_ssm_mark_failed(ssm, -EIO);
 	else if (transfer->length != transfer->actual_length)
-		fpi_ssm_mark_aborted(ssm, -EPROTO);
+		fpi_ssm_mark_failed(ssm, -EPROTO);
 	else
 		fpi_ssm_next_state(ssm);
-
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
 }
 
 /* read the specified number of bytes from the IN endpoint but throw them
  * away, then increment the SSM */
-static void generic_read_ignore_data(struct fpi_ssm *ssm, size_t bytes)
+static void generic_read_ignore_data(fpi_ssm *ssm, struct fp_dev *dev, size_t bytes)
 {
-	struct libusb_transfer *transfer = libusb_alloc_transfer(0);
+	fpi_usb_transfer *transfer;
 	unsigned char *data;
-	struct fp_dev *dev = fpi_ssm_get_dev(ssm);
 	int r;
 
-	if (!transfer) {
-		fpi_ssm_mark_aborted(ssm, -ENOMEM);
-		return;
-	}
-
 	data = g_malloc(bytes);
-	libusb_fill_bulk_transfer(transfer, fpi_dev_get_usb_dev(dev), EP_IN, data, bytes,
-		generic_ignore_data_cb, ssm, BULK_TIMEOUT);
+	transfer = fpi_usb_fill_bulk_transfer(dev,
+					      ssm,
+					      EP_IN,
+					      data,
+					      bytes,
+					      generic_ignore_data_cb,
+					      NULL,
+					      BULK_TIMEOUT);
 
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(transfer);
-		fpi_ssm_mark_aborted(ssm, r);
-	}
+	r = fpi_usb_submit_transfer(transfer);
+	if (r < 0)
+		fpi_ssm_mark_failed(ssm, r);
 }
 
 /****** IMAGE PROCESSING ******/
@@ -282,19 +281,22 @@ static const struct aes_regwrite finger_det_reqs[] = {
 
 static void start_finger_detection(struct fp_img_dev *dev);
 
-static void finger_det_data_cb(struct libusb_transfer *transfer)
+static void finger_det_data_cb(struct libusb_transfer *transfer,
+			       struct fp_dev          *_dev,
+			       fpi_ssm                *ssm,
+			       void                   *user_data)
 {
-	struct fp_img_dev *dev = transfer->user_data;
+	struct fp_img_dev *dev = FP_IMG_DEV(_dev);
 	unsigned char *data = transfer->buffer;
 	int i;
 	int sum = 0;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
 		fpi_imgdev_session_error(dev, -EIO);
-		goto out;
+		return;
 	} else if (transfer->length != transfer->actual_length) {
 		fpi_imgdev_session_error(dev, -EPROTO);
-		goto out;
+		return;
 	}
 
 	/* examine histogram to determine finger presence */
@@ -308,16 +310,12 @@ static void finger_det_data_cb(struct libusb_transfer *transfer)
 		/* no finger, poll for a new histogram */
 		start_finger_detection(dev);
 	}
-
-out:
-	g_free(data);
-	libusb_free_transfer(transfer);
 }
 
 static void finger_det_reqs_cb(struct fp_img_dev *dev, int result,
 	void *user_data)
 {
-	struct libusb_transfer *transfer;
+	fpi_usb_transfer *transfer;
 	unsigned char *data;
 	int r;
 
@@ -326,27 +324,24 @@ static void finger_det_reqs_cb(struct fp_img_dev *dev, int result,
 		return;
 	}
 
-	transfer = libusb_alloc_transfer(0);
-	if (!transfer) {
-		fpi_imgdev_session_error(dev, -ENOMEM);
-		return;
-	}
+	data = g_malloc(FINGER_DETECTION_LEN);
+	transfer = fpi_usb_fill_bulk_transfer(FP_DEV(dev),
+					      NULL,
+					      EP_IN,
+					      data,
+					      FINGER_DETECTION_LEN,
+					      finger_det_data_cb,
+					      NULL,
+					      BULK_TIMEOUT);
 
-	data = g_malloc(20);
-	libusb_fill_bulk_transfer(transfer, fpi_imgdev_get_usb_dev(dev), EP_IN, data, 20,
-		finger_det_data_cb, dev, BULK_TIMEOUT);
-
-	r = libusb_submit_transfer(transfer);
-	if (r < 0) {
-		g_free(data);
-		libusb_free_transfer(transfer);
+	r = fpi_usb_submit_transfer(transfer);
+	if (r < 0)
 		fpi_imgdev_session_error(dev, r);
-	}
 }
 
 static void start_finger_detection(struct fp_img_dev *dev)
 {
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	G_DEBUG_HERE();
 
 	if (aesdev->deactivating) {
@@ -433,35 +428,37 @@ enum capture_states {
 	CAPTURE_NUM_STATES,
 };
 
-static void capture_read_strip_cb(struct libusb_transfer *transfer)
+static void capture_read_strip_cb(struct libusb_transfer *transfer,
+				  struct fp_dev          *_dev,
+				  fpi_ssm                *ssm,
+				  void                   *user_data)
 {
 	unsigned char *stripdata;
-	struct fpi_ssm *ssm = transfer->user_data;
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = FP_IMG_DEV(_dev);
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(_dev);
 	unsigned char *data = transfer->buffer;
 	int sum;
 	int threshold;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		fpi_ssm_mark_aborted(ssm, -EIO);
-		goto out;
+		fpi_ssm_mark_failed(ssm, -EIO);
+		return;
 	} else if (transfer->length != transfer->actual_length) {
-		fpi_ssm_mark_aborted(ssm, -EPROTO);
-		goto out;
+		fpi_ssm_mark_failed(ssm, -EPROTO);
+		return;
 	}
 
 	threshold = regval_from_dump(data + 1 + 192*8 + 1 + 16*2 + 1 + 8,
 		AES2501_REG_DATFMT);
 	if (threshold < 0) {
-		fpi_ssm_mark_aborted(ssm, threshold);
-		goto out;
+		fpi_ssm_mark_failed(ssm, threshold);
+		return;
 	}
 
 	sum = sum_histogram_values(data + 1 + 192*8, threshold & 0x0f);
 	if (sum < 0) {
-		fpi_ssm_mark_aborted(ssm, sum);
-		goto out;
+		fpi_ssm_mark_failed(ssm, sum);
+		return;
 	}
 	fp_dbg("sum=%d", sum);
 
@@ -514,16 +511,12 @@ static void capture_read_strip_cb(struct libusb_transfer *transfer)
 
 		fpi_ssm_jump_to_state(ssm, CAPTURE_REQUEST_STRIP);
 	}
-
-out:
-	g_free(data);
-	libusb_free_transfer(transfer);
 }
 
-static void capture_run_state(struct fpi_ssm *ssm)
+static void capture_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(_dev);
 	int r;
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
@@ -532,14 +525,14 @@ static void capture_run_state(struct fpi_ssm *ssm)
 			generic_write_regv_cb, ssm);
 		break;
 	case CAPTURE_READ_DATA_1:
-		generic_read_ignore_data(ssm, 159);
+		generic_read_ignore_data(ssm, _dev, READ_REGS_RESP_LEN);
 		break;
 	case CAPTURE_WRITE_REQS_2:
 		aes_write_regv(dev, capture_reqs_2, G_N_ELEMENTS(capture_reqs_2),
 			generic_write_regv_cb, ssm);
 		break;
 	case CAPTURE_READ_DATA_2:
-		generic_read_ignore_data(ssm, 159);
+		generic_read_ignore_data(ssm, _dev, READ_REGS_RESP_LEN);
 		break;
 	case CAPTURE_REQUEST_STRIP:
 		if (aesdev->deactivating)
@@ -549,32 +542,30 @@ static void capture_run_state(struct fpi_ssm *ssm)
 				generic_write_regv_cb, ssm);
 		break;
 	case CAPTURE_READ_STRIP: ;
-		struct libusb_transfer *transfer = libusb_alloc_transfer(0);
+		fpi_usb_transfer *transfer;
 		unsigned char *data;
 
-		if (!transfer) {
-			fpi_ssm_mark_aborted(ssm, -ENOMEM);
-			break;
-		}
+		data = g_malloc(STRIP_CAPTURE_LEN);
+		transfer = fpi_usb_fill_bulk_transfer(FP_DEV(dev),
+						      ssm,
+						      EP_IN,
+						      data,
+						      STRIP_CAPTURE_LEN,
+						      capture_read_strip_cb,
+						      NULL,
+						      BULK_TIMEOUT);
 
-		data = g_malloc(1705);
-		libusb_fill_bulk_transfer(transfer, fpi_imgdev_get_usb_dev(dev), EP_IN, data, 1705,
-			capture_read_strip_cb, ssm, BULK_TIMEOUT);
-
-		r = libusb_submit_transfer(transfer);
-		if (r < 0) {
-			g_free(data);
-			libusb_free_transfer(transfer);
-			fpi_ssm_mark_aborted(ssm, r);
-		}
+		r = fpi_usb_submit_transfer(transfer);
+		if (r < 0)
+			fpi_ssm_mark_failed(ssm, r);
 		break;
 	};
 }
 
-static void capture_sm_complete(struct fpi_ssm *ssm)
+static void capture_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct fp_img_dev *dev = user_data;
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(_dev);
 
 	G_DEBUG_HERE();
 	if (aesdev->deactivating)
@@ -588,8 +579,8 @@ static void capture_sm_complete(struct fpi_ssm *ssm)
 
 static void start_capture(struct fp_img_dev *dev)
 {
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
-	struct fpi_ssm *ssm;
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	fpi_ssm *ssm;
 
 	if (aesdev->deactivating) {
 		complete_deactivation(dev);
@@ -599,9 +590,8 @@ static void start_capture(struct fp_img_dev *dev)
 	aesdev->no_finger_cnt = 0;
 	/* Reset gain */
 	strip_scan_reqs[4].value = AES2501_ADREFHI_MAX_VALUE;
-	ssm = fpi_ssm_new(fpi_imgdev_get_dev(dev), capture_run_state, CAPTURE_NUM_STATES);
+	ssm = fpi_ssm_new(FP_DEV(dev), capture_run_state, CAPTURE_NUM_STATES, dev);
 	G_DEBUG_HERE();
-	fpi_ssm_set_user_data(ssm, dev);
 	fpi_ssm_start(ssm, capture_sm_complete);
 }
 
@@ -713,11 +703,11 @@ enum activate_states {
 void activate_read_regs_cb(struct fp_img_dev *dev, int status,
 	unsigned char *regs, void *user_data)
 {
-	struct fpi_ssm *ssm = user_data;
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	fpi_ssm *ssm = user_data;
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
 	if (status != 0) {
-		fpi_ssm_mark_aborted(ssm, status);
+		fpi_ssm_mark_failed(ssm, status);
 	} else {
 		fp_dbg("reg 0xaf = %x", regs[0x5f]);
 		if (regs[0x5f] != 0x6b || ++aesdev->read_regs_retry_count == 13)
@@ -730,16 +720,16 @@ void activate_read_regs_cb(struct fp_img_dev *dev, int status,
 static void activate_init3_cb(struct fp_img_dev *dev, int result,
 	void *user_data)
 {
-	struct fpi_ssm *ssm = user_data;
+	fpi_ssm *ssm = user_data;
 	if (result == 0)
 		fpi_ssm_jump_to_state(ssm, READ_REGS);
 	else
-		fpi_ssm_mark_aborted(ssm, result);
+		fpi_ssm_mark_failed(ssm, result);
 }
 
-static void activate_run_state(struct fpi_ssm *ssm)
+static void activate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
+	struct fp_img_dev *dev = user_data;
 
 	/* This state machine isn't as linear as it may appear. After doing init1
 	 * and init2 register configuration writes, we have to poll a register
@@ -767,7 +757,7 @@ static void activate_run_state(struct fpi_ssm *ssm)
 		break;
 	case READ_DATA_1:
 		fp_dbg("read data 1");
-		generic_read_ignore_data(ssm, 20);
+		generic_read_ignore_data(ssm, _dev, FINGER_DETECTION_LEN);
 		break;
 	case WRITE_INIT_2:
 		aes_write_regv(dev, init_2, G_N_ELEMENTS(init_2),
@@ -791,9 +781,9 @@ static void activate_run_state(struct fpi_ssm *ssm)
 	}
 }
 
-static void activate_sm_complete(struct fpi_ssm *ssm)
+static void activate_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
-	struct fp_img_dev *dev = fpi_ssm_get_user_data(ssm);
+	struct fp_img_dev *dev = user_data;
 	fp_dbg("status %d", fpi_ssm_get_error(ssm));
 	fpi_imgdev_activate_complete(dev, fpi_ssm_get_error(ssm));
 
@@ -804,10 +794,9 @@ static void activate_sm_complete(struct fpi_ssm *ssm)
 
 static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
 {
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
-	struct fpi_ssm *ssm = fpi_ssm_new(fpi_imgdev_get_dev(dev), activate_run_state,
-		ACTIVATE_NUM_STATES);
-	fpi_ssm_set_user_data(ssm, dev);
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
+	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), activate_run_state,
+		ACTIVATE_NUM_STATES, dev);
 	aesdev->read_regs_retry_count = 0;
 	fpi_ssm_start(ssm, activate_sm_complete);
 	return 0;
@@ -815,7 +804,7 @@ static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
 
 static void dev_deactivate(struct fp_img_dev *dev)
 {
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	/* FIXME: audit cancellation points, probably need more, specifically
 	 * in error handling paths? */
 	aesdev->deactivating = TRUE;
@@ -823,7 +812,7 @@ static void dev_deactivate(struct fp_img_dev *dev)
 
 static void complete_deactivation(struct fp_img_dev *dev)
 {
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	G_DEBUG_HERE();
 
 	/* FIXME: if we're in the middle of a scan, we should cancel the scan.
@@ -842,23 +831,23 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
 	int r;
 	struct aes2501_dev *aesdev;
 
-	r = libusb_claim_interface(fpi_imgdev_get_usb_dev(dev), 0);
+	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
 	if (r < 0) {
 		fp_err("could not claim interface 0: %s", libusb_error_name(r));
 		return r;
 	}
 
 	aesdev = g_malloc0(sizeof(struct aes2501_dev));
-	fpi_imgdev_set_user_data(dev, aesdev);
+	fp_dev_set_instance_data(FP_DEV(dev), aesdev);
 	fpi_imgdev_open_complete(dev, 0);
 	return 0;
 }
 
 static void dev_deinit(struct fp_img_dev *dev)
 {
-	struct aes2501_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	g_free(aesdev);
-	libusb_release_interface(fpi_imgdev_get_usb_dev(dev), 0);
+	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
 	fpi_imgdev_close_complete(dev);
 }
 
