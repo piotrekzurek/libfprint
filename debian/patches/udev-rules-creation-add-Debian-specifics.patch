@@ -7,7 +7,7 @@ Last-Update: 2015-03-03
 
 --- a/libfprint/fprint-list-udev-rules.c
 +++ b/libfprint/fprint-list-udev-rules.c
-@@ -61,9 +61,6 @@ static void print_driver (struct fp_driv
+@@ -63,9 +63,6 @@ static void print_driver (struct fp_driv
  		break;
  	    }
  	}
@@ -17,7 +17,7 @@ Last-Update: 2015-03-03
  	key = g_strdup_printf ("%04x:%04x", driver->id_table[i].vendor, driver->id_table[i].product);
  
  	if (g_hash_table_lookup (printed, key) != NULL) {
-@@ -76,7 +73,10 @@ static void print_driver (struct fp_driv
+@@ -78,7 +75,10 @@ static void print_driver (struct fp_driv
  	if (num_printed == 0)
  	    printf ("# %s\n", driver->full_name);
  
