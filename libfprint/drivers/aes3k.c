@@ -63,7 +63,7 @@ static void aes3k_assemble_image(unsigned char *input, size_t width, size_t heig
 static void img_cb(struct libusb_transfer *transfer)
 {
 	struct fp_img_dev *dev = transfer->user_data;
-	struct aes3k_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	unsigned char *ptr = transfer->buffer;
 	struct fp_img *tmp;
 	struct fp_img *img;
@@ -94,7 +94,7 @@ static void img_cb(struct libusb_transfer *transfer)
 
 	/* FIXME: this is an ugly hack to make the image big enough for NBIS
 	 * to process reliably */
-	img = fpi_im_resize(tmp, aesdev->enlarge_factor, aesdev->enlarge_factor);
+	img = fpi_img_resize(tmp, aesdev->enlarge_factor, aesdev->enlarge_factor);
 	fp_img_free(tmp);
 	fpi_imgdev_image_captured(dev, img);
 
@@ -112,18 +112,13 @@ err:
 
 static void do_capture(struct fp_img_dev *dev)
 {
-	struct aes3k_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	unsigned char *data;
 	int r;
 
-	aesdev->img_trf = libusb_alloc_transfer(0);
-	if (!aesdev->img_trf) {
-		fpi_imgdev_session_error(dev, -EIO);
-		return;
-	}
-
+	aesdev->img_trf = fpi_usb_alloc();
 	data = g_malloc(aesdev->data_buflen);
-	libusb_fill_bulk_transfer(aesdev->img_trf, fpi_imgdev_get_usb_dev(dev), EP_IN, data,
+	libusb_fill_bulk_transfer(aesdev->img_trf, fpi_dev_get_usb_dev(FP_DEV(dev)), EP_IN, data,
 		aesdev->data_buflen, img_cb, dev, 0);
 
 	r = libusb_submit_transfer(aesdev->img_trf);
@@ -144,14 +139,14 @@ static void init_reqs_cb(struct fp_img_dev *dev, int result, void *user_data)
 
 int aes3k_dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
 {
-	struct aes3k_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	aes_write_regv(dev, aesdev->init_reqs, aesdev->init_reqs_len, init_reqs_cb, NULL);
 	return 0;
 }
 
 void aes3k_dev_deactivate(struct fp_img_dev *dev)
 {
-	struct aes3k_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 
 	/* FIXME: should wait for cancellation to complete before returning
 	 * from deactivation, otherwise app may legally exit before we've

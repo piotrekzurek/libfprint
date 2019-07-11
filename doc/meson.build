@@ -6,6 +6,9 @@ private_headers = [
   'aeslib.h',
   'assembling.h',
   'fp_internal.h',
+  'nbis-helpers.h',
+  'fpi-async.h',
+  'fpi-data.h',
 
   # Drivers
   'aes1660.h',
@@ -16,6 +19,7 @@ private_headers = [
   'aesx660.h',
   'driver_ids.h',
   'elan.h',
+  'upek_proto.h',
   'upeksonly.h',
   'upektc.h',
   'upektc_img.h',
@@ -32,6 +36,7 @@ private_headers = [
   'log.h',
   'bz_array.h',
   'lfs.h',
+  'mytime.h',
 ]
 
 html_images = [
@@ -54,7 +59,6 @@ gnome.gtkdoc('libfprint',
              content_files: content_files,
              expand_content_files: expand_content_files,
              scan_args: [
-               '--rebuild-types',
                '--ignore-decorators=API_EXPORTED',
                '--ignore-headers=' + ' '.join(private_headers),
              ],

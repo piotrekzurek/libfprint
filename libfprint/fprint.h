@@ -25,15 +25,24 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
+#include <unistd.h>
 #include <sys/time.h>
 
+/**
+ * LIBFPRINT_DEPRECATED:
+ *
+ * Expands to the GNU C deprecated attribute if the compiler is `gcc`. When
+ * called with the `-Wdeprecated-declarations` option, `gcc` will generate warnings
+ * when deprecated interfaces are used.
+ */
 #define LIBFPRINT_DEPRECATED __attribute__((__deprecated__))
 
 /**
  * fp_dscv_dev:
  *
  * #fp_dscv_dev is an opaque structure type.  You must access it using the
- * functions below.
+ * functions in this section.
  */
 struct fp_dscv_dev;
 
@@ -41,7 +50,7 @@ struct fp_dscv_dev;
  * fp_dscv_print:
  *
  * #fp_dscv_print is an opaque structure type.  You must access it using the
- * functions below.
+ * functions in this section.
  */
 struct fp_dscv_print;
 
@@ -49,7 +58,7 @@ struct fp_dscv_print;
  * fp_dev:
  *
  * #fp_dev is an opaque structure type.  You must access it using the
- * functions below.
+ * functions in this section.
  */
 struct fp_dev;
 
@@ -57,7 +66,7 @@ struct fp_dev;
  * fp_driver:
  *
  * #fp_driver is an opaque structure type.  You must access it using the
- * functions below.
+ * functions in this section.
  */
 struct fp_driver;
 
@@ -65,7 +74,7 @@ struct fp_driver;
  * fp_print_data:
  *
  * #fp_print_data is an opaque structure type.  You must access it using the
- * functions below.
+ * functions in this section.
  */
 struct fp_print_data;
 
@@ -73,7 +82,7 @@ struct fp_print_data;
  * fp_img:
  *
  * #fp_img is an opaque structure type.  You must access it using the
- * functions below.
+ * functions in this section.
  */
 struct fp_img;
 
@@ -128,6 +137,7 @@ const char *fp_driver_get_name(struct fp_driver *drv);
 const char *fp_driver_get_full_name(struct fp_driver *drv);
 uint16_t fp_driver_get_driver_id(struct fp_driver *drv);
 enum fp_scan_type fp_driver_get_scan_type(struct fp_driver *drv);
+int fp_driver_supports_imaging(struct fp_driver *drv);
 
 /* Device discovery */
 struct fp_dscv_dev **fp_discover_devs(void);
@@ -163,11 +173,10 @@ int fp_dev_supports_dscv_print(struct fp_dev *dev, struct fp_dscv_print *print) 
 
 /**
  * fp_capture_result:
- * Whether a capture failed or completed.
- *
  * @FP_CAPTURE_COMPLETE: Capture completed successfully, the capture data has been returned to the caller.
  * @FP_CAPTURE_FAIL: Capture failed
  *
+ * Whether a capture failed or completed.
  */
 enum fp_capture_result {
 	FP_CAPTURE_COMPLETE = 0,
@@ -284,7 +293,7 @@ uint32_t fp_print_data_get_devtype(struct fp_print_data *data);
  * fp_minutia:
  *
  * #fp_minutia is an opaque structure type.  You must access it using the
- * functions below.
+ * functions in this section.
  */
 struct fp_minutia;
 
@@ -295,6 +304,7 @@ int fp_img_save_to_file(struct fp_img *img, char *path);
 void fp_img_standardize(struct fp_img *img);
 struct fp_img *fp_img_binarize(struct fp_img *img);
 struct fp_minutia **fp_img_get_minutiae(struct fp_img *img, int *nr_minutiae);
+int fp_minutia_get_coords(struct fp_minutia *minutia, int *coord_x, int *coord_y);
 void fp_img_free(struct fp_img *img);
 
 /* Polling and timing */
@@ -304,12 +314,12 @@ void fp_img_free(struct fp_img *img);
  * @fd: a file descriptor
  * @events: Event flags to poll for from `<poll.h>`
  *
- * A structure representing a file descriptor and the events to poll
+ * A structure representing a file descriptor and the @events to poll
  * for, as returned by fp_get_pollfds().
  */
 struct fp_pollfd {
 	int fd;
-	short events;
+	short int events;
 };
 
 int fp_handle_events_timeout(struct timeval *timeout);
@@ -326,7 +336,7 @@ int fp_get_next_timeout(struct timeval *tv);
  * event source is added. The @events argument is a flag as defined in
  * `<poll.h>` such as `POLLIN`, or `POLLOUT`. See fp_set_pollfd_notifiers().
  */
-typedef void (*fp_pollfd_added_cb)(int fd, short events);
+typedef void (*fp_pollfd_added_cb)(int fd, short int events);
 
 /**
  * fp_pollfd_removed_cb:
@@ -348,7 +358,7 @@ void fp_set_debug(int level) LIBFPRINT_DEPRECATED;
 
 /**
  * fp_operation_stop_cb:
- * @dev: the #fp_dev device
+ * @dev: the struct #fp_dev device
  * @user_data: user data passed to the callback
  *
  * Type definition for a function that will be called when fp_async_dev_close(),
@@ -359,7 +369,7 @@ typedef void (*fp_operation_stop_cb)(struct fp_dev *dev, void *user_data);
 
 /**
  * fp_img_operation_cb:
- * @dev: the #fp_dev device
+ * @dev: the struct #fp_dev device
  * @result: an #fp_verify_result for fp_async_verify_start(), or an #fp_capture_result
  * for fp_async_capture_start(), or a negative value on error
  * @img: the captured #fp_img if capture or verification was successful
@@ -373,7 +383,7 @@ typedef void (*fp_img_operation_cb)(struct fp_dev *dev, int result,
 
 /**
  * fp_dev_open_cb:
- * @dev: the #fp_dev device
+ * @dev: the struct #fp_dev device
  * @status: 0 on success, or a negative value on error
  * @user_data: user data passed to the callback
  *
@@ -390,14 +400,15 @@ void fp_async_dev_close(struct fp_dev *dev, fp_operation_stop_cb callback,
 
 /**
  * fp_enroll_stage_cb:
- * @dev: the #fp_dev device
+ * @dev: the struct #fp_dev device
  * @result: a #fp_enroll_result on success, or a negative value on failure
  * @print: the enrollment data from the final stage
  * @img: an #fp_img to free with fp_img_free()
  * @user_data: user data passed to the callback
  *
  * Type definition for a function that will be called when
- * fp_async_enroll_start() finishes.
+ * fp_async_enroll_start() finishes. See fp_enroll_finger_img() for
+ * the expected behaviour of your program based on the @result.
  */
 typedef void (*fp_enroll_stage_cb)(struct fp_dev *dev, int result,
 	struct fp_print_data *print, struct fp_img *img, void *user_data);
@@ -416,7 +427,7 @@ int fp_async_verify_stop(struct fp_dev *dev, fp_operation_stop_cb callback,
 
 /**
  * fp_identify_cb:
- * @dev: the #fp_dev device
+ * @dev: the struct #fp_dev device
  * @result: a #fp_verify_result on success, or a negative value on error.
  * @match_offset: the array index of the matched gallery print (if any was found).
  * Only valid if %FP_VERIFY_MATCH was returned.

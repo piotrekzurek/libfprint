@@ -1,16 +1,29 @@
 libfprint_sources = [
     'fp_internal.h',
+    'nbis-helpers.h',
     'drivers_api.h',
-    'async.c',
-    'core.c',
-    'data.c',
-    'drv.c',
-    'img.c',
-    'imgdev.c',
-    'poll.c',
-    'sync.c',
-    'assembling.c',
-    'assembling.h',
+    'fpi-async.c',
+    'fpi-async.h',
+    'fpi-assembling.c',
+    'fpi-assembling.h',
+    'fpi-core.c',
+    'fpi-core.h',
+    'fpi-data.c',
+    'fpi-data.h',
+    'fpi-dev.c',
+    'fpi-dev.h',
+    'fpi-dev-img.c',
+    'fpi-dev-img.h',
+    'fpi-img.c',
+    'fpi-img.h',
+    'fpi-log.h',
+    'fpi-ssm.c',
+    'fpi-ssm.h',
+    'fpi-sync.c',
+    'fpi-poll.h',
+    'fpi-poll.c',
+    'fpi-usb.h',
+    'fpi-usb.c',
     'drivers/driver_ids.h',
 ]
 
@@ -30,14 +43,17 @@ nbis_sources = [
     'nbis/bozorth3/bz_sort.c',
     'nbis/mindtct/binar.c',
     'nbis/mindtct/block.c',
+    'nbis/mindtct/chaincod.c',
     'nbis/mindtct/contour.c',
     'nbis/mindtct/detect.c',
     'nbis/mindtct/dft.c',
     'nbis/mindtct/free.c',
+    'nbis/mindtct/getmin.c',
     'nbis/mindtct/globals.c',
     'nbis/mindtct/imgutil.c',
     'nbis/mindtct/init.c',
     'nbis/mindtct/line.c',
+    'nbis/mindtct/link.c',
     'nbis/mindtct/log.c',
     'nbis/mindtct/loop.c',
     'nbis/mindtct/maps.c',
@@ -50,6 +66,7 @@ nbis_sources = [
     'nbis/mindtct/shape.c',
     'nbis/mindtct/sort.c',
     'nbis/mindtct/util.c',
+    'nbis/mindtct/xytreps.c',
 ]
 
 aeslib = false
@@ -62,7 +79,7 @@ foreach driver: drivers
         drivers_sources += [ 'drivers/upekts.c' ]
     endif
     if driver == 'upektc'
-        drivers_sources += [ 'drivers/upektc.c', 'drivers/upektc.h' ]
+        drivers_sources += [ 'drivers/upektc.c', 'drivers/upektc.h', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
     endif
     if driver == 'upeksonly'
         drivers_sources += [ 'drivers/upeksonly.c', 'drivers/upeksonly.h' ]
@@ -118,7 +135,7 @@ foreach driver: drivers
         drivers_sources += [ 'drivers/vfs5011.c', 'drivers/vfs5011_proto.h' ]
     endif
     if driver == 'upektc_img'
-        drivers_sources += [ 'drivers/upektc_img.c', 'drivers/upektc_img.h' ]
+        drivers_sources += [ 'drivers/upektc_img.c', 'drivers/upektc_img.h', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
     endif
     if driver == 'etes603'
         drivers_sources += [ 'drivers/etes603.c' ]
@@ -132,7 +149,7 @@ foreach driver: drivers
 endforeach
 
 if aeslib
-    drivers_sources += [ 'aeslib.c', 'aeslib.h' ]
+    drivers_sources += [ 'drivers/aeslib.c', 'drivers/aeslib.h' ]
 endif
 if aesx660
     drivers_sources += ['drivers/aesx660.c', 'drivers/aesx660.h' ]
@@ -143,7 +160,7 @@ endif
 
 other_sources = []
 if imaging_dep.found()
-    other_sources += [ 'pixman.c' ]
+    other_sources += [ 'fpi-img-pixman.c' ]
 endif
 
 libfprint_sources += configure_file(input: 'empty_file',

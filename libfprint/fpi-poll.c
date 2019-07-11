@@ -20,6 +20,7 @@
 #define FP_COMPONENT "poll"
 
 #include "fp_internal.h"
+#include "fpi-poll.h"
 
 #include <config.h>
 #include <errno.h>
@@ -32,6 +33,7 @@
 /**
  * SECTION:events
  * @title: Initialisation and events handling
+ * @short_description: Initialisation and events handling functions
  *
  * These functions are only applicable to users of libfprint's asynchronous
  * API.
@@ -63,6 +65,16 @@
  * your main loop.
  */
 
+/**
+ * SECTION:fpi-poll
+ * @title: Timeouts
+ * @short_description: Timeout handling helpers
+ *
+ * Helper functions to schedule a function call to be made after a timeout. This
+ * is useful to avoid making blocking calls while waiting for hardware to answer
+ * for example.
+ */
+
 /* this is a singly-linked list of pending timers, sorted with the timer that
  * is expiring soonest at the head. */
 static GSList *active_timers = NULL;
@@ -74,13 +86,17 @@ static fp_pollfd_removed_cb fd_removed_cb = NULL;
 struct fpi_timeout {
 	struct timeval expiry;
 	fpi_timeout_fn callback;
+	struct fp_dev *dev;
 	void *data;
+	char *name;
 };
+
+static gboolean fpi_poll_is_setup(void);
 
 static int timeout_sort_fn(gconstpointer _a, gconstpointer _b)
 {
-	struct fpi_timeout *a = (struct fpi_timeout *) _a;
-	struct fpi_timeout *b = (struct fpi_timeout *) _b;
+	fpi_timeout *a = (fpi_timeout *) _a;
+	fpi_timeout *b = (fpi_timeout *) _b;
 	struct timeval *tv_a = &a->expiry;
 	struct timeval *tv_b = &b->expiry;
 
@@ -92,27 +108,79 @@ static int timeout_sort_fn(gconstpointer _a, gconstpointer _b)
 		return 0;
 }
 
-/* A timeout is the asynchronous equivalent of sleeping. You create a timeout
+static void
+fpi_timeout_free(fpi_timeout *timeout)
+{
+	if (timeout == NULL)
+		return;
+
+	g_free(timeout->name);
+	g_free(timeout);
+}
+
+/**
+ * fpi_timeout_set_name:
+ * @timeout: a #fpi_timeout
+ * @name: the name to give the timeout
+ *
+ * Sets a name for a timeout, allowing that name to be printed
+ * along with any timeout related debug.
+ */
+void
+fpi_timeout_set_name(fpi_timeout *timeout,
+		     const char  *name)
+{
+	g_return_if_fail (timeout != NULL);
+	g_return_if_fail (name != NULL);
+	g_return_if_fail (timeout->name == NULL);
+
+	timeout->name = g_strdup(name);
+}
+
+/**
+ * fpi_timeout_add:
+ * @msec: the time before calling the function, in milliseconds (1/1000ths of a second)
+ * @callback: function to callback
+ * @dev: a struct #fp_dev
+ * @data: data to pass to @callback, or %NULL
+ *
+ * A timeout is the asynchronous equivalent of sleeping. You create a timeout
  * saying that you'd like to have a function invoked at a certain time in
- * the future. */
-struct fpi_timeout *fpi_timeout_add(unsigned int msec, fpi_timeout_fn callback,
-	void *data)
+ * the future.
+ *
+ * Note that you should hold onto the return value of this function to cancel it
+ * use fpi_timeout_cancel(), otherwise the callback could be called while the driver
+ * is being torn down.
+ *
+ * This function can be considered to never fail.
+ *
+ * Returns: an #fpi_timeout structure
+ */
+fpi_timeout *fpi_timeout_add(unsigned int    msec,
+			     fpi_timeout_fn  callback,
+			     struct fp_dev  *dev,
+			     void           *data)
 {
 	struct timespec ts;
 	struct timeval add_msec;
-	struct fpi_timeout *timeout;
+	fpi_timeout *timeout;
 	int r;
+
+	g_return_val_if_fail (dev != NULL, NULL);
+	g_return_val_if_fail (fpi_poll_is_setup(), NULL);
 
 	fp_dbg("in %dms", msec);
 
 	r = clock_gettime(CLOCK_MONOTONIC, &ts);
 	if (r < 0) {
 		fp_err("failed to read monotonic clock, errno=%d", errno);
+		BUG();
 		return NULL;
 	}
 
-	timeout = g_malloc(sizeof(*timeout));
+	timeout = g_new0(fpi_timeout, 1);
 	timeout->callback = callback;
+	timeout->dev = dev;
 	timeout->data = data;
 	TIMESPEC_TO_TIMEVAL(&timeout->expiry, &ts);
 
@@ -128,11 +196,38 @@ struct fpi_timeout *fpi_timeout_add(unsigned int msec, fpi_timeout_fn callback,
 	return timeout;
 }
 
-void fpi_timeout_cancel(struct fpi_timeout *timeout)
+/**
+ * fpi_timeout_cancel:
+ * @timeout: an #fpi_timeout structure
+ *
+ * Cancels a timeout scheduled with fpi_timeout_add(), and frees the
+ * @timeout structure.
+ */
+void fpi_timeout_cancel(fpi_timeout *timeout)
 {
 	G_DEBUG_HERE();
 	active_timers = g_slist_remove(active_timers, timeout);
-	g_free(timeout);
+	fpi_timeout_free(timeout);
+}
+
+void
+fpi_timeout_cancel_for_dev(struct fp_dev *dev)
+{
+	GSList *l;
+
+	g_return_if_fail (dev != NULL);
+
+	l = active_timers;
+	while (l) {
+		struct fpi_timeout *timeout = l->data;
+		GSList *current = l;
+
+		l = l->next;
+		if (timeout->dev == dev) {
+			fpi_timeout_free (timeout);
+			active_timers = g_slist_delete_link (active_timers, current);
+		}
+	}
 }
 
 /* get the expiry time and optionally the timeout structure for the next
@@ -163,11 +258,18 @@ static int get_next_timeout_expiry(struct timeval *out,
 		*out_timeout = next_timeout;
 
 	if (timercmp(&tv, &next_timeout->expiry, >=)) {
-		fp_dbg("first timeout already expired");
+		if (next_timeout->name)
+			fp_dbg("first timeout '%s' already expired", next_timeout->name);
+		else
+			fp_dbg("first timeout already expired");
 		timerclear(out);
 	} else {
 		timersub(&next_timeout->expiry, &tv, out);
-		fp_dbg("next timeout in %ld.%06lds", out->tv_sec, out->tv_usec);
+		if (next_timeout->name)
+			fp_dbg("next timeout '%s' in %ld.%06lds", next_timeout->name,
+			       out->tv_sec, out->tv_usec);
+		else
+			fp_dbg("next timeout in %ld.%06lds", out->tv_sec, out->tv_usec);
 	}
 
 	return 1;
@@ -177,9 +279,9 @@ static int get_next_timeout_expiry(struct timeval *out,
 static void handle_timeout(struct fpi_timeout *timeout)
 {
 	G_DEBUG_HERE();
-	timeout->callback(timeout->data);
+	timeout->callback(timeout->dev, timeout->data);
 	active_timers = g_slist_remove(active_timers, timeout);
-	g_free(timeout);
+	fpi_timeout_free(timeout);
 }
 
 static int handle_timeouts(void)
@@ -263,7 +365,7 @@ API_EXPORTED int fp_handle_events(void)
 
 /**
  * fp_get_next_timeout:
- * @tv: a %timeval structure containing the duration to the next timeout.
+ * @tv: a #timeval structure containing the duration to the next timeout.
  *
  * A zero filled @tv timeout means events are to be handled immediately
  *
@@ -271,8 +373,8 @@ API_EXPORTED int fp_handle_events(void)
  */
 API_EXPORTED int fp_get_next_timeout(struct timeval *tv)
 {
-	struct timeval fprint_timeout;
-	struct timeval libusb_timeout;
+	struct timeval fprint_timeout = { 0, 0 };
+	struct timeval libusb_timeout = { 0, 0 };
 	int r_fprint;
 	int r_libusb;
 
@@ -281,7 +383,7 @@ API_EXPORTED int fp_get_next_timeout(struct timeval *tv)
 
 	/* if we have no pending timeouts and the same is true for libusb,
 	 * indicate that we have no pending timouts */
-	if (r_fprint == 0 && r_libusb == 0)
+	if (r_fprint <= 0 && r_libusb <= 0)
 		return 0;
 
 	/* if fprint have no pending timeouts return libusb timeout */
@@ -320,6 +422,8 @@ API_EXPORTED ssize_t fp_get_pollfds(struct fp_pollfd **pollfds)
 	struct fp_pollfd *ret;
 	ssize_t cnt = 0;
 	size_t i = 0;
+
+	g_return_val_if_fail (fpi_usb_ctx != NULL, -EIO);
 
 	usbfds = libusb_get_pollfds(fpi_usb_ctx);
 	if (!usbfds) {
@@ -376,10 +480,35 @@ void fpi_poll_init(void)
 
 void fpi_poll_exit(void)
 {
-	g_slist_free(active_timers);
+	g_slist_free_full(active_timers, (GDestroyNotify) fpi_timeout_free);
 	active_timers = NULL;
 	fd_added_cb = NULL;
 	fd_removed_cb = NULL;
 	libusb_set_pollfd_notifiers(fpi_usb_ctx, NULL, NULL, NULL);
 }
 
+static gboolean
+fpi_poll_is_setup(void)
+{
+	return (fd_added_cb != NULL && fd_removed_cb != NULL);
+}
+
+void
+fpi_timeout_cancel_all_for_dev(struct fp_dev *dev)
+{
+	GSList *l;
+
+	g_return_if_fail (dev != NULL);
+
+	l = active_timers;
+	while (l) {
+		struct fpi_timeout *timeout = l->data;
+		GSList *current = l;
+
+		l = l->next;
+		if (timeout->dev == dev) {
+			g_free (timeout);
+			active_timers = g_slist_delete_link (active_timers, current);
+		}
+	}
+}

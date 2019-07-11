@@ -31,6 +31,7 @@
 /**
  * SECTION:img
  * @title: Image operations
+ * @short_description: Image operation functions
  *
  * libfprint offers several ways of retrieving images from imaging devices,
  * one example being the fp_dev_img_capture() function. The functions
@@ -48,6 +49,25 @@
  * natural upright orientation.
  */
 
+/**
+ * SECTION:fpi-img
+ * @title: Driver Image operations
+ * @short_description: Driver image operation functions
+ *
+ * Those are the driver-specific helpers for #fp_img manipulation. See #fp_img's
+ * documentation for more information about data formats, and their uses in
+ * front-end applications.
+ */
+
+/**
+ * fpi_img_new:
+ * @length: the length of data to allocate
+ *
+ * Creates a new #fp_img structure with @length bytes of data allocated
+ * to hold the image.
+ *
+ * Returns: a new #fp_img to free with fp_img_free()
+ */
 struct fp_img *fpi_img_new(size_t length)
 {
 	struct fp_img *img = g_malloc0(sizeof(*img) + length);
@@ -56,9 +76,19 @@ struct fp_img *fpi_img_new(size_t length)
 	return img;
 }
 
+/**
+ * fpi_img_new_for_imgdev:
+ * @imgdev: a #fp_img_dev imaging fingerprint device
+ *
+ * Creates a new #fp_img structure, like fpi_img_new(), but uses the
+ * driver's advertised height and width to calculate the size of the
+ * length of data to allocate.
+ *
+ * Returns: a new #fp_img to free with fp_img_free()
+ */
 struct fp_img *fpi_img_new_for_imgdev(struct fp_img_dev *imgdev)
 {
-	struct fp_img_driver *imgdrv = fpi_driver_to_img_driver(imgdev->dev->drv);
+	struct fp_img_driver *imgdrv = fpi_driver_to_img_driver(FP_DEV(imgdev)->drv);
 	int width = imgdrv->img_width;
 	int height = imgdrv->img_height;
 	struct fp_img *img = fpi_img_new(width * height);
@@ -67,27 +97,53 @@ struct fp_img *fpi_img_new_for_imgdev(struct fp_img_dev *imgdev)
 	return img;
 }
 
+/**
+ * fpi_img_is_sane:
+ * @img: a #fp_img image
+ *
+ * Checks whether an #fp_img structure passes some basic checks, such
+ * as length, width and height being non-zero, and the buffer being
+ * big enough to hold the image of said size.
+ *
+ * Returns: %TRUE if the image is sane, %FALSE otherwise
+ */
 gboolean fpi_img_is_sane(struct fp_img *img)
 {
+	guint len;
+
 	/* basic checks */
-	if (!img->length || !img->width || !img->height)
+	if (!img->length || img->width <= 0 || img->height <= 0)
 		return FALSE;
 
-	/* buffer is big enough? */
-	if ((img->length * img->height) < img->length)
+	/* Are width and height just too big? */
+	if (!g_uint_checked_mul(&len, img->width, img->height) ||
+	    len > G_MAXINT)
+		return FALSE;
+
+	/* buffer big enough? */
+	if (len > img->length)
 		return FALSE;
 
 	return TRUE;
 }
 
-struct fp_img *fpi_img_resize(struct fp_img *img, size_t newsize)
+/**
+ * fpi_img_realloc:
+ * @img: an #fp_img image
+ * @newsize: the new length of the image
+ *
+ * Changes the size of the data part of the #fp_img.
+ *
+ * Returns: the modified #fp_img, the same as the first argument to this function
+ */
+struct fp_img *fpi_img_realloc(struct fp_img *img, size_t newsize)
 {
 	return g_realloc(img, sizeof(*img) + newsize);
 }
 
 /**
  * fp_img_free:
- * @img: the image to destroy. If NULL, function simply returns.
+ * @img: the image to destroy. If %NULL, function simply returns.
  *
  * Frees an image. Must be called when you are finished working with an image.
  */
@@ -262,9 +318,8 @@ static void minutiae_to_xyt(struct fp_minutiae *minutiae, int bwidth,
 	struct minutiae_struct c[MAX_FILE_MINUTIAE];
 	struct xyt_struct *xyt = (struct xyt_struct *) buf;
 
-	/* FIXME: only considers first 150 minutiae (MAX_FILE_MINUTIAE) */
-	/* nist does weird stuff with 150 vs 1000 limits */
-	int nmin = min(minutiae->num, MAX_FILE_MINUTIAE);
+	/* struct xyt_struct uses arrays of MAX_BOZORTH_MINUTIAE (200) */
+	int nmin = min(minutiae->num, MAX_BOZORTH_MINUTIAE);
 
 	for (i = 0; i < nmin; i++){
 		minutia = minutiae->list[i];
@@ -288,6 +343,9 @@ static void minutiae_to_xyt(struct fp_minutiae *minutiae, int bwidth,
 	xyt->nrows = nmin;
 }
 
+#define FP_IMG_STANDARDIZATION_FLAGS (FP_IMG_V_FLIPPED | FP_IMG_H_FLIPPED \
+	| FP_IMG_COLORS_INVERTED)
+
 static int fpi_img_detect_minutiae(struct fp_img *img)
 {
 	struct fp_minutiae *minutiae;
@@ -300,12 +358,9 @@ static int fpi_img_detect_minutiae(struct fp_img *img)
 	GTimer *timer;
 
 	if (img->flags & FP_IMG_STANDARDIZATION_FLAGS) {
-		fp_err("cant detect minutiae for non-standardized image");
+		fp_err("Cannot detect minutiae for non-standardized images");
 		return -EINVAL;
 	}
-
-	/* Remove perimeter points from partial image */
-	g_lfsparms_V2.remove_perimeter_pts = img->flags & FP_IMG_PARTIAL ? TRUE : FALSE;
 
 	/* 25.4 mm per inch */
 	timer = g_timer_new();
@@ -352,7 +407,7 @@ int fpi_img_to_print_data(struct fp_img_dev *imgdev, struct fp_img *img,
 
 	/* FIXME: space is wasted if we dont hit the max minutiae count. would
 	 * be good to make this dynamic. */
-	print = fpi_print_data_new(imgdev->dev);
+	print = fpi_print_data_new(FP_DEV(imgdev));
 	item = fpi_print_data_item_new(sizeof(struct xyt_struct));
 	print->type = PRINT_DATA_NBIS_MINUTIAE;
 	minutiae_to_xyt(img->minutiae, img->width, img->height, item->data);
@@ -536,57 +591,46 @@ API_EXPORTED struct fp_minutia **fp_img_get_minutiae(struct fp_img *img,
 	return img->minutiae->list;
 }
 
-libusb_device_handle *
-fpi_imgdev_get_usb_dev(struct fp_img_dev *dev)
+/**
+ * fp_minutia_get_coords:
+ * @minutia: a struct #fp_minutia
+ * @coord_x: the return variable for the X coordinate of the minutia
+ * @coord_y: the return variable for the Y coordinate of the minutia
+ *
+ * Sets @coord_x and @coord_y to be the coordinates of the detected minutia, so it
+ * can be presented in a more verbose user interface. This is usually only
+ * used for debugging purposes.
+ *
+ * Returns: 0 on success, -1 on error.
+ */
+API_EXPORTED int fp_minutia_get_coords(struct fp_minutia *minutia, int *coord_x, int *coord_y)
 {
-	return dev->udev;
+	g_return_val_if_fail (minutia != NULL, -1);
+	g_return_val_if_fail (coord_x != NULL, -1);
+	g_return_val_if_fail (coord_y != NULL, -1);
+
+	*coord_x = minutia->x;
+	*coord_y = minutia->y;
+
+	return 0;
 }
 
-void
-fpi_imgdev_set_user_data(struct fp_img_dev *imgdev,
-	void *user_data)
-{
-	imgdev->priv = user_data;
-}
-
-void *
-fpi_imgdev_get_user_data(struct fp_img_dev *imgdev)
-{
-	return imgdev->priv;
-}
-
-struct fp_dev *
-fpi_imgdev_get_dev(struct fp_img_dev *imgdev)
-{
-	return imgdev->dev;
-}
-
-enum fp_imgdev_enroll_state
-fpi_imgdev_get_action_state(struct fp_img_dev *imgdev)
-{
-	return imgdev->action_state;
-}
-
-enum fp_imgdev_action
-fpi_imgdev_get_action(struct fp_img_dev *imgdev)
-{
-	return imgdev->action;
-}
-
-int
-fpi_imgdev_get_action_result(struct fp_img_dev *imgdev)
-{
-	return imgdev->action_result;
-}
-
-void
-fpi_imgdev_set_action_result(struct fp_img_dev *imgdev,
-	int action_result)
-{
-	imgdev->action_result = action_result;
-}
-
-/* Calculate squared standand deviation */
+/**
+ * fpi_std_sq_dev:
+ * @buf: buffer (usually bitmap, one byte per pixel)
+ * @size: size of @buffer
+ *
+ * Calculates the squared standard deviation of the individual
+ * pixels in the buffer, as per the following formula:
+ * |[<!-- -->
+ *    mean = sum (buf[0..size]) / size
+ *    sq_dev = sum ((buf[0.size] - mean) ^ 2)
+ * ]|
+ * This function is usually used to determine whether image
+ * is empty.
+ *
+ * Returns: the squared standard deviation for @buffer
+ */
 int fpi_std_sq_dev(const unsigned char *buf, int size)
 {
 	int res = 0, mean = 0, i;
@@ -609,7 +653,23 @@ int fpi_std_sq_dev(const unsigned char *buf, int size)
 	return res / size;
 }
 
-/* Calculate normalized mean square difference of two lines */
+/**
+ * fpi_mean_sq_diff_norm:
+ * @buf1: buffer (usually bitmap, one byte per pixel)
+ * @buf2: buffer (usually bitmap, one byte per pixel)
+ * @size: buffer size of smallest buffer
+ *
+ * This function calculates the normalized mean square difference of
+ * two buffers, usually two lines, as per the following formula:
+ * |[<!-- -->
+ *    sq_diff = sum ((buf1[0..size] - buf2[0..size]) ^ 2) / size
+ * ]|
+ *
+ * This functions is usually used to get numerical difference
+ * between two images.
+ *
+ * Returns: the normalized mean squared difference between @buf1 and @buf2
+ */
 int fpi_mean_sq_diff_norm(unsigned char *buf1, unsigned char *buf2, int size)
 {
 	int res = 0, i;

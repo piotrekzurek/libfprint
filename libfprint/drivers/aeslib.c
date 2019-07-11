@@ -24,10 +24,10 @@
 #include <errno.h>
 #include <string.h>
 
-#include <libusb.h>
 #include <glib.h>
 
-#include "assembling.h"
+#include "fpi-usb.h"
+#include "fpi-assembling.h"
 #include "aeslib.h"
 
 #define MAX_REGWRITES_PER_REQUEST	16
@@ -73,13 +73,8 @@ static int do_write_regv(struct write_regv_data *wdata, int upper_bound)
 	unsigned char *data = g_malloc(alloc_size);
 	unsigned int i;
 	size_t data_offset = 0;
-	struct libusb_transfer *transfer = libusb_alloc_transfer(0);
+	struct libusb_transfer *transfer = fpi_usb_alloc();
 	int r;
-
-	if (!transfer) {
-		g_free(data);
-		return -ENOMEM;
-	}
 
 	for (i = offset; i < offset + num; i++) {
 		const struct aes_regwrite *regwrite = &wdata->regs[i];
@@ -87,7 +82,7 @@ static int do_write_regv(struct write_regv_data *wdata, int upper_bound)
 		data[data_offset++] = regwrite->value;
 	}
 
-	libusb_fill_bulk_transfer(transfer, wdata->imgdev->udev, EP_OUT, data,
+	libusb_fill_bulk_transfer(transfer, FP_DEV(wdata->imgdev)->udev, EP_OUT, data,
 		alloc_size, write_regv_trf_complete, wdata, BULK_TIMEOUT);
 	r = libusb_submit_transfer(transfer);
 	if (r < 0) {
@@ -149,8 +144,10 @@ static void continue_write_regv(struct write_regv_data *wdata)
 void aes_write_regv(struct fp_img_dev *dev, const struct aes_regwrite *regs,
 	unsigned int num_regs, aes_write_regv_cb callback, void *user_data)
 {
-	struct write_regv_data *wdata = g_malloc(sizeof(*wdata));
+	struct write_regv_data *wdata;
+
 	fp_dbg("write %d regs", num_regs);
+	wdata = g_malloc(sizeof(*wdata));
 	wdata->imgdev = dev;
 	wdata->num_regs = num_regs;
 	wdata->regs = regs;
@@ -158,6 +155,8 @@ void aes_write_regv(struct fp_img_dev *dev, const struct aes_regwrite *regs,
 	wdata->callback = callback;
 	wdata->user_data = user_data;
 	continue_write_regv(wdata);
+
+	g_free(wdata);
 }
 
 unsigned char aes_get_pixel(struct fpi_frame_asmbl_ctx *ctx,

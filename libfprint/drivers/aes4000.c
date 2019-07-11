@@ -119,14 +119,14 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
 	int r;
 	struct aes3k_dev *aesdev;
 
-	r = libusb_claim_interface(fpi_imgdev_get_usb_dev(dev), 0);
+	r = libusb_claim_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
 	if (r < 0) {
 		fp_err("could not claim interface 0: %s", libusb_error_name(r));
 		return r;
 	}
 
 	aesdev = g_malloc0(sizeof(struct aes3k_dev));
-	fpi_imgdev_set_user_data(dev, aesdev);
+	fp_dev_set_instance_data(FP_DEV(dev), aesdev);
 
 	if (!aesdev)
 		return -ENOMEM;
@@ -145,9 +145,9 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
 
 static void dev_deinit(struct fp_img_dev *dev)
 {
-	struct aes3k_dev *aesdev = fpi_imgdev_get_user_data(dev);
+	struct aes3k_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	g_free(aesdev);
-	libusb_release_interface(fpi_imgdev_get_usb_dev(dev), 0);
+	libusb_release_interface(fpi_dev_get_usb_dev(FP_DEV(dev)), 0);
 	fpi_imgdev_close_complete(dev);
 }
 
