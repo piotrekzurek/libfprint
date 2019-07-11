@@ -13,8 +13,9 @@ libfprint (1:0.99.0-1) UNRELEASED; urgency=medium
   * debian/libfprint0.symbols: Add the Build-Depends-Package field
   * debian/control: Add libglib2.0-doc to Build-Depends-Indep, this allows
     gtk-doc to properly resolve all the links in the documentation
+  * debian/rules: Install the NEWS file as the upstream changelog
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 01:00:46 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 01:02:47 +0200
 
 libfprint (1:0.8.2-3) unstable; urgency=medium
 
