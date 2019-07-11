@@ -9,8 +9,9 @@ libfprint (1:0.99.0-1) UNRELEASED; urgency=medium
   * debian/control: Update Vcs-* fields (Closes: #909256)
   * debian/rules: Disable the build of the GTK+ test application for now, this
     is not ready yet
+  * debian/control: Bump Standards-Version to 4.4.0 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 00:22:41 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 12 Jul 2019 00:23:22 +0200
 
 libfprint (1:0.8.2-3) unstable; urgency=medium
 
