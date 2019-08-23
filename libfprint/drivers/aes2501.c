@@ -415,7 +415,7 @@ static struct aes_regwrite strip_scan_reqs[] = {
 /* capture SM movement:
  * write reqs and read data 1 + 2,
  * request and read strip,
- * jump back to request UNLESS theres no finger, in which case exit SM,
+ * jump back to request UNLESS there's no finger, in which case exit SM,
  * report lack of finger presence, and move to finger detection */
 
 enum capture_states {
@@ -792,7 +792,7 @@ static void activate_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 	fpi_ssm_free(ssm);
 }
 
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	struct aes2501_dev *aesdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), activate_run_state,

@@ -31,6 +31,7 @@
 /* devices with quirks */
 #define ELAN_0907 (1 << 0)
 #define ELAN_0C03 (1 << 1)
+#define ELAN_0C42 (1 << 2)
 
 /* devices which don't require frame rotation before assembling */
 #define ELAN_NOT_ROTATED ELAN_0C03
@@ -55,7 +56,7 @@
 
 /* number of frames to drop at the end of capture because frames captured
  * while the finger is being lifted can be bad */
-#define ELAN_SKIP_LAST_FRAMES 1
+#define ELAN_SKIP_LAST_FRAMES 2
 
 #define ELAN_CMD_LEN 0x2
 #define ELAN_EP_CMD_OUT (0x1 | LIBUSB_ENDPOINT_OUT)
@@ -207,6 +208,7 @@ static const struct usb_id elan_id_table[] = {
 	{.vendor = ELAN_VEND_ID,.product = 0x0c31,.driver_data = ELAN_ALL_DEV},
 	{.vendor = ELAN_VEND_ID,.product = 0x0c32,.driver_data = ELAN_ALL_DEV},
 	{.vendor = ELAN_VEND_ID,.product = 0x0c33,.driver_data = ELAN_ALL_DEV},
+	{.vendor = ELAN_VEND_ID,.product = 0x0c42,.driver_data = ELAN_0C42},
 	{0, 0, 0,},
 };
 

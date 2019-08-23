@@ -447,7 +447,7 @@ static void init_read_data_cb(struct libusb_transfer *transfer)
 }
 
 /* TODO: use calibration table, datasheet is rather terse on that
- * need more info for implementaion */
+ * need more info for implementation */
 static void calibrate_read_data_cb(struct libusb_transfer *transfer)
 {
 	fpi_ssm *ssm = transfer->user_data;
@@ -541,7 +541,7 @@ static void activate_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 	fpi_ssm_free(ssm);
 }
 
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), activate_run_state,
 		ACTIVATE_NUM_STATES, dev);

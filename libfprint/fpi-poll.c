@@ -91,8 +91,6 @@ struct fpi_timeout {
 	char *name;
 };
 
-static gboolean fpi_poll_is_setup(void);
-
 static int timeout_sort_fn(gconstpointer _a, gconstpointer _b)
 {
 	fpi_timeout *a = (fpi_timeout *) _a;
@@ -167,7 +165,6 @@ fpi_timeout *fpi_timeout_add(unsigned int    msec,
 	int r;
 
 	g_return_val_if_fail (dev != NULL, NULL);
-	g_return_val_if_fail (fpi_poll_is_setup(), NULL);
 
 	fp_dbg("in %dms", msec);
 
@@ -208,26 +205,6 @@ void fpi_timeout_cancel(fpi_timeout *timeout)
 	G_DEBUG_HERE();
 	active_timers = g_slist_remove(active_timers, timeout);
 	fpi_timeout_free(timeout);
-}
-
-void
-fpi_timeout_cancel_for_dev(struct fp_dev *dev)
-{
-	GSList *l;
-
-	g_return_if_fail (dev != NULL);
-
-	l = active_timers;
-	while (l) {
-		struct fpi_timeout *timeout = l->data;
-		GSList *current = l;
-
-		l = l->next;
-		if (timeout->dev == dev) {
-			fpi_timeout_free (timeout);
-			active_timers = g_slist_delete_link (active_timers, current);
-		}
-	}
 }
 
 /* get the expiry time and optionally the timeout structure for the next
@@ -485,12 +462,6 @@ void fpi_poll_exit(void)
 	fd_added_cb = NULL;
 	fd_removed_cb = NULL;
 	libusb_set_pollfd_notifiers(fpi_usb_ctx, NULL, NULL, NULL);
-}
-
-static gboolean
-fpi_poll_is_setup(void)
-{
-	return (fd_added_cb != NULL && fd_removed_cb != NULL);
 }
 
 void

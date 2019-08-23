@@ -287,7 +287,7 @@ static void capture_read_data_cb(struct libusb_transfer *transfer)
 				fpi_ssm_mark_completed(ssm);
 				break;
 			default:
-				fp_err("Uknown response!\n");
+				fp_err("Unknown response!\n");
 				fpi_ssm_mark_failed(ssm, -EIO);
 				break;
 		}
@@ -567,7 +567,7 @@ static void activate_sm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_d
 		start_capture(dev);
 }
 
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	struct upektc_img_dev *upekdev = FP_INSTANCE_DATA(FP_DEV(dev));
 	fpi_ssm *ssm = fpi_ssm_new(FP_DEV(dev), activate_run_state,

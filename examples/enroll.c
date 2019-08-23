@@ -24,6 +24,8 @@
 
 #include <libfprint/fprint.h>
 
+#include "storage.h"
+
 struct fp_dscv_dev *discover_device(struct fp_dscv_dev **discovered_devs)
 {
 	struct fp_dscv_dev *ddev = discovered_devs[0];
@@ -45,8 +47,7 @@ struct fp_print_data *enroll(struct fp_dev *dev) {
 
 	do {
 		struct fp_img *img = NULL;
-	
-		sleep(1);
+
 		printf("\nScan your finger now.\n");
 
 		r = fp_enroll_finger_img(dev, &enrolled_print, &img);
@@ -143,7 +144,7 @@ int main(void)
 	if (!data)
 		goto out_close;
 
-	r = fp_print_data_save(data, RIGHT_INDEX);
+	r = print_data_save(data, RIGHT_INDEX);
 	if (r < 0)
 		fprintf(stderr, "Data save failed, code %d\n", r);
 
