@@ -1,4 +1,4 @@
-libfprint (1:0.99.0-1) UNRELEASED; urgency=medium
+libfprint (1:1.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
     - d/p/lib-Add-accessor-for-minutia-coordinates.patch,

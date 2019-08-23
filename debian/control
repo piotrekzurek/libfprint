@@ -4,7 +4,7 @@ Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
 Build-Depends: debhelper (>= 10.3),
- libusb-1.0-0-dev, libglib2.0-dev, libpixman-1-dev, libxv-dev,
+ libusb-1.0-0-dev, libglib2.0-dev (>= 2.50), libpixman-1-dev, libxv-dev,
  libnss3-dev, meson, gtk-doc-tools
 Build-Depends-Indep: libglib2.0-doc
 Standards-Version: 4.4.0
