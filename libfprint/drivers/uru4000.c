@@ -668,7 +668,7 @@ static uint32_t do_decode(uint8_t *data, int num_bytes, uint32_t key)
 		data[i] = data[i+1] ^ xorbyte;
 	}
 
-	/* the final byte is implictly zero */
+	/* the final byte is implicitly zero */
 	data[i] = 0;
 	return update_key(key);
 }
@@ -710,7 +710,7 @@ static void imaging_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data
 	uint32_t key;
 	uint8_t flags, num_lines;
 	int i, r, to, dev2;
-	char buf[5];
+	unsigned char buf[5];
 
 	switch (fpi_ssm_get_cur_state(ssm)) {
 	case IMAGING_CAPTURE:
@@ -1161,20 +1161,10 @@ static void activate_initsm_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *us
 	int r = fpi_ssm_get_error(ssm);
 	fpi_ssm_free(ssm);
 
-	if (r) {
-		fpi_imgdev_activate_complete(dev, r);
-		return;
-	}
-
-	r = execute_state_change(dev);
 	fpi_imgdev_activate_complete(dev, r);
 }
 
-/* FIXME: having state parameter here is kinda useless, will we ever
- * see a scenario where the parameter is useful so early on in the activation
- * process? asynchronity means that it'll only be used in a later function
- * call. */
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	struct uru4k_dev *urudev = FP_INSTANCE_DATA(FP_DEV(dev));
 	fpi_ssm *ssm;
@@ -1185,7 +1175,6 @@ static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
 		return r;
 
 	urudev->scanpwr_irq_timeouts = 0;
-	urudev->activate_state = state;
 	ssm = fpi_ssm_new(FP_DEV(dev), init_run_state, INIT_NUM_STATES, dev);
 	fpi_ssm_start(ssm, activate_initsm_complete);
 	return 0;
@@ -1339,6 +1328,9 @@ static int dev_init(struct fp_img_dev *dev, unsigned long driver_data)
 		fp_err("interface claim failed: %s", libusb_error_name(r));
 		goto out;
 	}
+
+	/* Disable loading p11-kit's user configuration */
+	g_setenv ("P11_KIT_NO_USER_CONFIG", "1", TRUE);
 
 	/* Initialise NSS early */
 	rv = NSS_NoDB_Init(".");

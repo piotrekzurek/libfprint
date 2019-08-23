@@ -293,23 +293,22 @@ static void elan_process_frame_thirds(unsigned short *raw_frame,
 static void elan_submit_image(struct fp_img_dev *dev)
 {
 	struct elan_dev *elandev = FP_INSTANCE_DATA(FP_DEV(dev));
+	int num_frames;
+	GSList *raw_frames;
 	GSList *frames = NULL;
 	struct fp_img *img;
 
 	G_DEBUG_HERE();
 
-	for (int i = 0; i < ELAN_SKIP_LAST_FRAMES; i++)
-		elandev->frames = g_slist_next(elandev->frames);
-	elandev->num_frames -= ELAN_SKIP_LAST_FRAMES;
+	num_frames = elandev->num_frames - ELAN_SKIP_LAST_FRAMES;
+	raw_frames = g_slist_nth(elandev->frames, ELAN_SKIP_LAST_FRAMES);
 
 	assembling_ctx.frame_width = elandev->frame_width;
 	assembling_ctx.frame_height = elandev->frame_height;
 	assembling_ctx.image_width = elandev->frame_width * 3 / 2;
-	g_slist_foreach(elandev->frames, (GFunc) elandev->process_frame,
-			&frames);
-	fpi_do_movement_estimation(&assembling_ctx, frames,
-				   elandev->num_frames);
-	img = fpi_assemble_frames(&assembling_ctx, frames, elandev->num_frames);
+	g_slist_foreach(raw_frames, (GFunc) elandev->process_frame, &frames);
+	fpi_do_movement_estimation(&assembling_ctx, frames, num_frames);
+	img = fpi_assemble_frames(&assembling_ctx, frames, num_frames);
 
 	img->flags |= FP_IMG_PARTIAL;
 	fpi_imgdev_image_captured(dev, img);
@@ -383,6 +382,12 @@ static void elan_cmd_read(fpi_ssm *ssm, struct fp_img_dev *dev)
 		return;
 	}
 
+	if (elandev->dev_type == ELAN_0C42) {
+		/* ELAN_0C42 sends an extra byte in one byte responses */
+		if (elandev->cmd->response_len == 1)
+			response_len = 2;
+	}
+
 	if (elandev->cmd->cmd == get_image_cmd.cmd)
 		/* raw data has 2-byte "pixels" and the frame is vertical */
 		response_len =
@@ -419,7 +424,8 @@ elan_run_cmd(fpi_ssm               *ssm,
 		elandev->cmd_timeout = cmd_timeout;
 
 	if (cmd->devices != ELAN_ALL_DEV && !(cmd->devices & elandev->dev_type)) {
-		fp_dbg("skipping for this device");
+		fp_dbg("skipping command 0x%x 0x%x for this device (for devices 0x%x but device is 0x%x)",
+		       cmd->cmd[0], cmd->cmd[1], cmd->devices, elandev->dev_type);
 		elan_cmd_done(ssm);
 		return;
 	}
@@ -597,6 +603,14 @@ static int elan_need_calibration(struct elan_dev *elandev)
 
 	g_assert(frame_size != 0);
 
+	if (elandev->dev_type == ELAN_0C42) {
+		if (calib_mean > 5500 ||
+		    calib_mean < 2500) {
+			fp_dbg("Forcing needed recalibration");
+			return 1;
+		}
+	}
+
 	for (int i = 0; i < frame_size; i++)
 		bg_mean += elandev->background[i];
 	bg_mean /= frame_size;
@@ -621,6 +635,14 @@ enum calibrate_states {
 	CALIBRATE_NUM_STATES,
 };
 
+static gboolean elan_supports_calibration(struct elan_dev *elandev)
+{
+	if (elandev->dev_type == ELAN_0C42)
+		return TRUE;
+
+	return elandev->fw_ver >= ELAN_MIN_CALIBRATION_FW;
+}
+
 static void calibrate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 {
 	struct fp_img_dev *dev = user_data;
@@ -634,7 +656,7 @@ static void calibrate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_da
 		break;
 	case CALIBRATE_SAVE_BACKGROUND:
 		elan_save_background(elandev);
-		if (elandev->fw_ver < ELAN_MIN_CALIBRATION_FW) {
+		if (!elan_supports_calibration(elandev)) {
 			fp_dbg("FW does not support calibration");
 			fpi_ssm_mark_completed(ssm);
 		} else
@@ -755,6 +777,14 @@ static void activate_run_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_dat
 			elandev->frame_height = elandev->raw_frame_height =
 			    elandev->last_read[0];
 		}
+		/* Work-around sensors returning the sizes as zero-based index
+		 * rather than the number of pixels. */
+		if ((elandev->frame_width % 2 == 1) &&
+		    (elandev->frame_height % 2 == 1)) {
+			elandev->frame_width++;
+			elandev->frame_height++;
+			elandev->raw_frame_height = elandev->frame_height;
+		}
 		if (elandev->frame_height > ELAN_MAX_FRAME_HEIGHT)
 			elandev->frame_height = ELAN_MAX_FRAME_HEIGHT;
 		fp_dbg("sensor dimensions, WxH: %dx%d", elandev->frame_width,
@@ -844,7 +874,7 @@ static void dev_deinit(struct fp_img_dev *dev)
 	fpi_imgdev_close_complete(dev);
 }
 
-static int dev_activate(struct fp_img_dev *dev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *dev)
 {
 	G_DEBUG_HERE();
 	elan_activate(dev);

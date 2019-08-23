@@ -577,7 +577,7 @@ static void activate_ssm(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 			vdev->need_report = 0;
 		}
 
-		/* Asyncronously enquire an interrupt */
+		/* Asynchronously enquire an interrupt */
 		vdev->transfer = fpi_usb_alloc();
 		vdev->transfer->flags |= LIBUSB_TRANSFER_FREE_TRANSFER;
 		libusb_fill_interrupt_transfer(vdev->transfer, usb_dev, 0x83,
@@ -684,7 +684,7 @@ static void dev_activate_callback(fpi_ssm *ssm, struct fp_dev *_dev, void *user_
 }
 
 /* Activate device */
-static int dev_activate(struct fp_img_dev *idev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *idev)
 {
 	struct vfs_dev_t *vdev = FP_INSTANCE_DATA(FP_DEV(idev));
 
