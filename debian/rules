@@ -15,6 +15,3 @@ override_dh_install:
 	sed -i '/^Requires.private\|^Libs.private/ d' \
 		debian/tmp/usr/lib/*/pkgconfig/libfprint.pc
 	dh_install
-
-override_dh_installchangelogs:
-	dh_installchangelogs NEWS
