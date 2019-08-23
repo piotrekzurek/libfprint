@@ -4,8 +4,13 @@ Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
 Build-Depends: debhelper (>= 10.3),
- libusb-1.0-0-dev, libglib2.0-dev (>= 2.50), libpixman-1-dev, libxv-dev,
- libnss3-dev, meson, gtk-doc-tools
+               gtk-doc-tools,
+               libglib2.0-dev (>= 2.50),
+               libnss3-dev,
+               libpixman-1-dev,
+               libusb-1.0-0-dev,
+               libxv-dev,
+               meson
 Build-Depends-Indep: libglib2.0-doc
 Standards-Version: 4.4.0
 Homepage: https://www.freedesktop.org/wiki/Software/fprint/libfprint
@@ -30,14 +35,14 @@ Description: async fingerprint library of fprint project, development headers
  talking to fingerprint reading devices, and processing fingerprint data.
  .
  This library depends on the new libusb, which performs asynchronous callbacks,
- allowing fprint to perform non-blocking device tasks. 
+ allowing fprint to perform non-blocking device tasks.
  .
  This package provides development headers.
 
 Package: libfprint0
 Architecture: any
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
 Pre-Depends: ${misc:Pre-Depends}
 Description: async fingerprint library of fprint project, shared libraries
  The fprint project aims to support for consumer fingerprint reader devices.
@@ -52,7 +57,7 @@ Description: async fingerprint library of fprint project, shared libraries
  talking to fingerprint reading devices, and processing fingerprint data.
  .
  This library depends on the new libusb, which performs asynchronous callbacks,
- allowing fprint to perform non-blocking device tasks. 
+ allowing fprint to perform non-blocking device tasks.
  .
  This package provides shared libraries.
 
