@@ -1,4 +1,4 @@
-This package was debianized by Ulises Vitulli <uvitulli@fi.uba.ar>  on 
+This package was debianized by Ulises Vitulli <uvitulli@fi.uba.ar>  on
 Fri, 19 Sep 2008 05:14:30 -0300.
 
 It was downloaded from <http://reactivated.net/fprint/wiki/Libfprint>
@@ -33,13 +33,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 The files under libfprint/nbis directory has this license:
 
-This software was developed at the National Institute of Standards and 
-Technology (NIST) by employees of the Federal Government in the course 
-of their official duties. Pursuant to title 17 Section 105 of the 
-United States Code, this software is not subject to copyright protection 
-and is in the public domain. NIST assumes no responsibility  whatsoever for 
-its use by other parties, and makes no guarantees, expressed or implied, 
-about its quality, reliability, or any other characteristic. 
+This software was developed at the National Institute of Standards and
+Technology (NIST) by employees of the Federal Government in the course
+of their official duties. Pursuant to title 17 Section 105 of the
+United States Code, this software is not subject to copyright protection
+and is in the public domain. NIST assumes no responsibility  whatsoever for
+its use by other parties, and makes no guarantees, expressed or implied,
+about its quality, reliability, or any other characteristic.
 
 The Debian packaging is © 2008, Ulises Vitulli <uvitulli@fi.uba.ar> and is
 licensed under the LGPL v2.1, see `/usr/share/common-licenses/LGPL-2.1'.

@@ -315,16 +315,3 @@ int fpi_ssm_get_error(fpi_ssm *machine)
 {
 	return machine->error;
 }
-
-/**
- * fpi_ssm_set_error:
- * @machine: an #fpi_ssm state machine
- * @error: the error code
- *
- * Set the state machine error with @error as error code, but without making
- * it fail until it reached the last step.
- */
-void fpi_ssm_set_error(struct fpi_ssm *machine, int error)
-{
-	machine->error = error;
-}

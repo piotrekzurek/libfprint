@@ -1,29 +1,38 @@
-Description: vfs0090-sensor-support
-Author: Marco Trevisan (Treviño) <marco@ubuntu.com>
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Tue, 3 Dec 2019 16:00:07 +0100
+Subject: Add support for Validity Sensor vfs0090
 
 ---
-The information above should follow the Patch Tagging Guidelines, please
-checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
-are templates for supplementary fields that you might want to add:
+ AUTHORS                            |    2 +
+ README.md                          |   71 ++
+ libfprint/drivers/driver_ids.h     |    3 +-
+ libfprint/drivers/vfs0090.c        | 2039 ++++++++++++++++++++++++++++++++++++
+ libfprint/drivers/vfs0090.h        |  777 ++++++++++++++
+ libfprint/fpi-ssm.c                |   13 +
+ libfprint/fpi-ssm.h                |    1 +
+ libfprint/fprint-list-udev-rules.c |    1 -
+ libfprint/meson.build              |    5 +-
+ meson.build                        |   17 +-
+ 10 files changed, 2925 insertions(+), 4 deletions(-)
+ create mode 100644 README.md
+ create mode 100644 libfprint/drivers/vfs0090.c
+ create mode 100644 libfprint/drivers/vfs0090.h
 
-Origin: <vendor|upstream|other>, <url of original patch>
-Bug: <url in upstream bugtracker>
-Bug-Debian: https://bugs.debian.org/<bugnumber>
-Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
-Forwarded: <no|not-needed|url proving that it has been forwarded>
-Reviewed-By: <name and email of someone who approved the patch>
-Last-Update: 2018-12-25
-
---- libfprint-0.9.9.orig/AUTHORS
-+++ libfprint-0.9.9/AUTHORS
-@@ -9,3 +9,5 @@ Copyright (C) 2007 Jan-Michael Brummer <
+diff --git a/AUTHORS b/AUTHORS
+index 2b9f267..9888082 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -9,3 +9,5 @@ Copyright (C) 2007 Jan-Michael Brummer <buzz2@gmx.de>
  Copyright (C) 2007 Anthony Bretaudeau <wxcover@users.sourceforge.net>
  Copyright (C) 2010 Hugo Grostabussiat <dw23.devel@gmail.com>
  Copyright (C) 2012 Timo Teräs <timo.teras@iki.fi>
 +Copyright (C) 2017 Nikita Mikhailov <nikita.s.mikhailov@gmail.com>
 +Copyright (C) 2018 Marco Trevisan <marco@ubuntu.com>
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..35687e2
 --- /dev/null
-+++ libfprint-0.9.9/README.md
++++ b/README.md
 @@ -0,0 +1,71 @@
 +## Validity Sensor `138a:0090` libfprint driver
 +#### A linux driver for 2016 ThinkPad's fingerprint readers
@@ -96,8 +105,10 @@ Last-Update: 2018-12-25
 +```
 +
 +The score is the value the print got for you, compared to each sample that fprint saves... And to match it needs to reach the said threshold (so 12 for now). For my fingers this value seems secure enough, but.... Let's see if we can increase it.
---- libfprint-0.9.9.orig/libfprint/drivers/driver_ids.h
-+++ libfprint-0.9.9/libfprint/drivers/driver_ids.h
+diff --git a/libfprint/drivers/driver_ids.h b/libfprint/drivers/driver_ids.h
+index 012a3d0..6ca6412 100644
+--- a/libfprint/drivers/driver_ids.h
++++ b/libfprint/drivers/driver_ids.h
 @@ -41,7 +41,8 @@ enum {
  	ETES603_ID	= 18,
  	VFS5011_ID	= 19,
@@ -108,8 +119,11 @@ Last-Update: 2018-12-25
  };
  
  #endif
+diff --git a/libfprint/drivers/vfs0090.c b/libfprint/drivers/vfs0090.c
+new file mode 100644
+index 0000000..2dfee67
 --- /dev/null
-+++ libfprint-0.9.9/libfprint/drivers/vfs0090.c
++++ b/libfprint/drivers/vfs0090.c
 @@ -0,0 +1,2039 @@
 +/*
 + * Validity VFS0090 driver for libfprint
@@ -2150,8 +2164,11 @@ Last-Update: 2018-12-25
 +	.change_state = dev_change_state,
 +	.deactivate = dev_deactivate,
 +};
+diff --git a/libfprint/drivers/vfs0090.h b/libfprint/drivers/vfs0090.h
+new file mode 100644
+index 0000000..37cc86c
 --- /dev/null
-+++ libfprint-0.9.9/libfprint/drivers/vfs0090.h
++++ b/libfprint/drivers/vfs0090.h
 @@ -0,0 +1,777 @@
 +/*
 + * Validity VFS0090 driver for libfprint
@@ -2930,8 +2947,10 @@ Last-Update: 2018-12-25
 +	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 +	0x00, 0x00, 0x00, 0x00, 0x00
 +};
---- libfprint-0.9.9.orig/libfprint/fpi-ssm.c
-+++ libfprint-0.9.9/libfprint/fpi-ssm.c
+diff --git a/libfprint/fpi-ssm.c b/libfprint/fpi-ssm.c
+index 64430c1..80f41a8 100644
+--- a/libfprint/fpi-ssm.c
++++ b/libfprint/fpi-ssm.c
 @@ -315,3 +315,16 @@ int fpi_ssm_get_error(fpi_ssm *machine)
  {
  	return machine->error;
@@ -2949,9 +2968,11 @@ Last-Update: 2018-12-25
 +{
 +	machine->error = error;
 +}
---- libfprint-0.9.9.orig/libfprint/fpi-ssm.h
-+++ libfprint-0.9.9/libfprint/fpi-ssm.h
-@@ -80,6 +80,7 @@ void fpi_ssm_jump_to_state(fpi_ssm *mach
+diff --git a/libfprint/fpi-ssm.h b/libfprint/fpi-ssm.h
+index a619d42..eb6662d 100644
+--- a/libfprint/fpi-ssm.h
++++ b/libfprint/fpi-ssm.h
+@@ -80,6 +80,7 @@ void fpi_ssm_jump_to_state(fpi_ssm *machine, int state);
  void fpi_ssm_mark_completed(fpi_ssm *machine);
  void fpi_ssm_mark_failed(fpi_ssm *machine, int error);
  void *fpi_ssm_get_user_data(fpi_ssm *machine);
@@ -2959,8 +2980,10 @@ Last-Update: 2018-12-25
  int fpi_ssm_get_error(fpi_ssm *machine);
  int fpi_ssm_get_cur_state(fpi_ssm *machine);
  
---- libfprint-0.9.9.orig/libfprint/fprint-list-udev-rules.c
-+++ libfprint-0.9.9/libfprint/fprint-list-udev-rules.c
+diff --git a/libfprint/fprint-list-udev-rules.c b/libfprint/fprint-list-udev-rules.c
+index 428bf53..1850b0a 100644
+--- a/libfprint/fprint-list-udev-rules.c
++++ b/libfprint/fprint-list-udev-rules.c
 @@ -25,7 +25,6 @@
  
  static const struct usb_id whitelist_id_table[] = {
@@ -2969,19 +2992,21 @@ Last-Update: 2018-12-25
      { .vendor = 0x138a, .product = 0x0091 },
      { .vendor = 0x138a, .product = 0x0094 },
      { .vendor = 0x138a, .product = 0x0097 }, /* Found on e.g. Lenovo T470s */
---- libfprint-0.9.9.orig/libfprint/meson.build
-+++ libfprint-0.9.9/libfprint/meson.build
-@@ -143,6 +143,9 @@ foreach driver: drivers
+diff --git a/libfprint/meson.build b/libfprint/meson.build
+index 976c70c..297f32a 100644
+--- a/libfprint/meson.build
++++ b/libfprint/meson.build
+@@ -118,6 +118,9 @@ foreach driver: drivers
      if driver == 'vfs0050'
-         drivers_sources += [ 'drivers/vfs0050.c', 'drivers/vfs0050.h' ]
+         drivers_sources += [ 'drivers/vfs0050.c' ]
      endif
 +    if driver == 'vfs0090'
 +        drivers_sources += [ 'drivers/vfs0090.c', 'drivers/vfs0090.h' ]
 +    endif
      if driver == 'elan'
-         drivers_sources += [ 'drivers/elan.c', 'drivers/elan.h' ]
+         drivers_sources += [ 'drivers/elan.c' ]
      endif
-@@ -179,7 +182,7 @@ libfprint_sources += configure_file(inpu
+@@ -154,7 +157,7 @@ libfprint_sources += configure_file(input: 'empty_file',
                                        drivers_primitive_array + '\n\n' + drivers_img_array
                                      ])
  
@@ -2990,9 +3015,11 @@ Last-Update: 2018-12-25
  libfprint = library('fprint',
                      libfprint_sources + drivers_sources + nbis_sources + other_sources,
                      soversion: soversion,
---- libfprint-0.9.9.orig/meson.build
-+++ libfprint-0.9.9/meson.build
-@@ -45,7 +45,7 @@ mathlib_dep = cc.find_library('m', requi
+diff --git a/meson.build b/meson.build
+index b7f7f31..de21272 100644
+--- a/meson.build
++++ b/meson.build
+@@ -47,7 +47,7 @@ mathlib_dep = cc.find_library('m', required: false)
  
  # Drivers
  drivers = get_option('drivers').split(',')
@@ -3001,7 +3028,7 @@ Last-Update: 2018-12-25
  primitive_drivers = [ 'upekts' ]
  
  if drivers == [ 'all' ]
-@@ -57,6 +57,7 @@ if drivers.length() == 0 or drivers[0] =
+@@ -59,6 +59,7 @@ if drivers.length() == 0 or drivers[0] == ''
  endif
  
  nss_dep = dependency('', required: false)
@@ -3009,12 +3036,10 @@ Last-Update: 2018-12-25
  imaging_dep = dependency('', required: false)
  foreach driver: drivers
      if driver == 'uru4000'
-@@ -69,6 +70,20 @@ foreach driver: drivers
-         imaging_dep = dependency('pixman-1', required: false)
-         if not imaging_dep.found()
+@@ -73,6 +74,20 @@ foreach driver: drivers
              error('pixman is required for imaging support')
-+        endif
-+    endif
+         endif
+     endif
 +    if driver == 'vfs0090'
 +        nss_dep = dependency('nss', required: false)
 +        if not nss_dep.found()
@@ -3027,6 +3052,8 @@ Last-Update: 2018-12-25
 +        imaging_dep = dependency('pixman-1', required: false)
 +        if not imaging_dep.found()
 +            error('pixman is required for imaging support')
-         endif
-     endif
++        endif
++    endif
      if not all_drivers.contains(driver)
+         error('Invalid driver \'' + driver + '\'')
+     endif

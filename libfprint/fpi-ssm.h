@@ -80,7 +80,6 @@ void fpi_ssm_jump_to_state(fpi_ssm *machine, int state);
 void fpi_ssm_mark_completed(fpi_ssm *machine);
 void fpi_ssm_mark_failed(fpi_ssm *machine, int error);
 void *fpi_ssm_get_user_data(fpi_ssm *machine);
-void fpi_ssm_set_error(struct fpi_ssm *machine, int error);
 int fpi_ssm_get_error(fpi_ssm *machine);
 int fpi_ssm_get_cur_state(fpi_ssm *machine);
 

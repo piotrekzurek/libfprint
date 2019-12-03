@@ -1,4 +1,5 @@
 libfprint.so.0 libfprint0 #MINVER#
+* Build-Depends-Package: libfprint-dev
  fp_async_capture_start@Base 1:0.6.0
  fp_async_capture_stop@Base 1:0.6.0
  fp_async_dev_close@Base 1:0.4.0
@@ -27,7 +28,7 @@ libfprint.so.0 libfprint0 #MINVER#
  fp_driver_get_full_name@Base 1:0.4.0
  fp_driver_get_name@Base 1:0.4.0
  fp_driver_get_scan_type@Base 1:0.4.0
- fp_driver_supports_imaging@Base 1:0.9.9
+ fp_driver_supports_imaging@Base 1:0.99.0
  fp_dscv_dev_for_dscv_print@Base 1:0.4.0
  fp_dscv_dev_for_print_data@Base 1:0.4.0
  fp_dscv_dev_get_devtype@Base 1:0.4.0

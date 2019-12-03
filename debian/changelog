@@ -1,10 +1,33 @@
-libfprint (1:0.9.9-0+vfs0090~d2ubuntu1) UNRELEASED; urgency=medium
+libfprint (1:1.0-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream release
+    - d/p/lib-Add-accessor-for-minutia-coordinates.patch,
+      d/p/fix_ftbfs_meson.patch: Dropped, applied upstream
+    - Other patches: Refreshed
+    - debian/libfprint0.symbols: Add newly exported symbol
+    - debian/libfprint0.postinst: Call udevadm --trigger also for the new
+      supported readers
+  * debian/gbp.conf: Set pristine-tar and upstream-vcs-tag
+  * debian/control: Update Vcs-* fields (Closes: #909256)
+  * debian/rules: Disable the build of the GTK+ test application for now, this
+    is not ready yet
+  * debian/control: Bump Standards-Version to 4.4.0 (no further changes)
+  * debian/libfprint0.symbols: Add the Build-Depends-Package field
+  * debian/control: Add libglib2.0-doc to Build-Depends-Indep, this allows
+    gtk-doc to properly resolve all the links in the documentation
+  * debian/README.source: Document how the list of devices in
+    debian/libfprint0.postinst is generated
+
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 23 Aug 2019 17:27:45 +0200
+
+libfprint (1:0.9.9-0+vfs0090~d3) disco; urgency=medium
 
   * debian/control:
     - build-depend on libgtk-3-dev
     - install gtk example in libfprint-bin
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Dec 2018 02:47:51 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Dec 2018 02:49:23 +0100
 
 libfprint (1:0.9.9-0+vfs0090~d2) disco; urgency=medium
 

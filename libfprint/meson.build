@@ -1,40 +1,18 @@
 libfprint_sources = [
-    'fp_internal.h',
-    'nbis-helpers.h',
-    'drivers_api.h',
     'fpi-async.c',
-    'fpi-async.h',
     'fpi-assembling.c',
-    'fpi-assembling.h',
     'fpi-core.c',
-    'fpi-core.h',
     'fpi-data.c',
-    'fpi-data.h',
     'fpi-dev.c',
-    'fpi-dev.h',
     'fpi-dev-img.c',
-    'fpi-dev-img.h',
     'fpi-img.c',
-    'fpi-img.h',
-    'fpi-log.h',
     'fpi-ssm.c',
-    'fpi-ssm.h',
     'fpi-sync.c',
-    'fpi-poll.h',
     'fpi-poll.c',
-    'fpi-usb.h',
     'fpi-usb.c',
-    'drivers/driver_ids.h',
 ]
 
 nbis_sources = [
-    'nbis/include/bozorth.h',
-    'nbis/include/bz_array.h',
-    'nbis/include/defs.h',
-    'nbis/include/lfs.h',
-    'nbis/include/log.h',
-    'nbis/include/morph.h',
-    'nbis/include/sunrast.h',
     'nbis/bozorth3/bozorth3.c',
     'nbis/bozorth3/bz_alloc.c',
     'nbis/bozorth3/bz_drvrs.c',
@@ -76,13 +54,13 @@ drivers_sources = []
 drivers_cflags = []
 foreach driver: drivers
     if driver == 'upekts'
-        drivers_sources += [ 'drivers/upekts.c' ]
+        drivers_sources += [ 'drivers/upekts.c', 'drivers/upek_proto.c' ]
     endif
     if driver == 'upektc'
-        drivers_sources += [ 'drivers/upektc.c', 'drivers/upektc.h', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
+        drivers_sources += [ 'drivers/upektc.c' ]
     endif
     if driver == 'upeksonly'
-        drivers_sources += [ 'drivers/upeksonly.c', 'drivers/upeksonly.h' ]
+        drivers_sources += [ 'drivers/upeksonly.c' ]
     endif
     if driver == 'uru4000'
         drivers_sources += [ 'drivers/uru4000.c' ]
@@ -92,20 +70,20 @@ foreach driver: drivers
         aeslib = true
     endif
     if driver == 'aes1660'
-        drivers_sources += [ 'drivers/aes1660.c', 'drivers/aes1660.h' ]
+        drivers_sources += [ 'drivers/aes1660.c' ]
         aeslib = true
         aesx660 = true
     endif
     if driver == 'aes2501'
-        drivers_sources += [ 'drivers/aes2501.c', 'drivers/aes2501.h' ]
+        drivers_sources += [ 'drivers/aes2501.c' ]
         aeslib = true
     endif
     if driver == 'aes2550'
-        drivers_sources += [ 'drivers/aes2550.c', 'drivers/aes2550.h' ]
+        drivers_sources += [ 'drivers/aes2550.c' ]
         aeslib = true
     endif
     if driver == 'aes2660'
-        drivers_sources += [ 'drivers/aes2660.c', 'drivers/aes2660.h' ]
+        drivers_sources += [ 'drivers/aes2660.c' ]
         aeslib = true
         aesx660 = true
     endif
@@ -119,9 +97,6 @@ foreach driver: drivers
         aeslib = true
         aes3k = true
     endif
-    if driver == 'fdu2000'
-        drivers_sources += [ 'drivers/fdu2000.c' ]
-    endif
     if driver == 'vcom5s'
         drivers_sources += [ 'drivers/vcom5s.c' ]
     endif
@@ -129,36 +104,33 @@ foreach driver: drivers
         drivers_sources += [ 'drivers/vfs101.c' ]
     endif
     if driver == 'vfs301'
-        drivers_sources += [ 'drivers/vfs301.c', 'drivers/vfs301_proto.c',  'drivers/vfs301_proto.h', 'drivers/vfs301_proto_fragments.h' ]
+        drivers_sources += [ 'drivers/vfs301.c', 'drivers/vfs301_proto.c' ]
     endif
     if driver == 'vfs5011'
-        drivers_sources += [ 'drivers/vfs5011.c', 'drivers/vfs5011_proto.h' ]
+        drivers_sources += [ 'drivers/vfs5011.c' ]
     endif
     if driver == 'upektc_img'
-        drivers_sources += [ 'drivers/upektc_img.c', 'drivers/upektc_img.h', 'drivers/upek_proto.c', 'drivers/upek_proto.h' ]
+        drivers_sources += [ 'drivers/upektc_img.c',  'drivers/upek_proto.c' ]
     endif
     if driver == 'etes603'
         drivers_sources += [ 'drivers/etes603.c' ]
     endif
     if driver == 'vfs0050'
-        drivers_sources += [ 'drivers/vfs0050.c', 'drivers/vfs0050.h' ]
-    endif
-    if driver == 'vfs0090'
-        drivers_sources += [ 'drivers/vfs0090.c', 'drivers/vfs0090.h' ]
+        drivers_sources += [ 'drivers/vfs0050.c' ]
     endif
     if driver == 'elan'
-        drivers_sources += [ 'drivers/elan.c', 'drivers/elan.h' ]
+        drivers_sources += [ 'drivers/elan.c' ]
     endif
 endforeach
 
 if aeslib
-    drivers_sources += [ 'drivers/aeslib.c', 'drivers/aeslib.h' ]
+    drivers_sources += [ 'drivers/aeslib.c' ]
 endif
 if aesx660
-    drivers_sources += ['drivers/aesx660.c', 'drivers/aesx660.h' ]
+    drivers_sources += ['drivers/aesx660.c' ]
 endif
 if aes3k
-    drivers_sources += ['drivers/aes3k.c', 'drivers/aes3k.h' ]
+    drivers_sources += ['drivers/aes3k.c' ]
 endif
 
 other_sources = []
@@ -182,7 +154,7 @@ libfprint_sources += configure_file(input: 'empty_file',
                                       drivers_primitive_array + '\n\n' + drivers_img_array
                                     ])
 
-deps = [ mathlib_dep, glib_dep, libusb_dep, nss_dep, openssl_dep, imaging_dep ]
+deps = [ mathlib_dep, glib_dep, libusb_dep, nss_dep, imaging_dep ]
 libfprint = library('fprint',
                     libfprint_sources + drivers_sources + nbis_sources + other_sources,
                     soversion: soversion,

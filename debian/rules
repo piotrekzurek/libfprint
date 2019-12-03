@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 # Configuration arguments
-CONFIG_ARGS = -Dudev_rules_dir=/lib/udev/rules.d
+CONFIG_ARGS = -Dudev_rules_dir=/lib/udev/rules.d -Dgtk-examples=true
 
 %:
 	dh $@

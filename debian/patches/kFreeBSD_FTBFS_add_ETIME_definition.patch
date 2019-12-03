@@ -6,10 +6,8 @@ Reviewed-by: Didier Raboud <odyx@debian.org>
 Last-Update: 2013-03-03
 ---
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
-Index: libfprint/libfprint/drivers/uru4000.c
-===================================================================
---- libfprint.orig/libfprint/drivers/uru4000.c
-+++ libfprint/libfprint/drivers/uru4000.c
+--- a/libfprint/drivers/uru4000.c
++++ b/libfprint/drivers/uru4000.c
 @@ -25,6 +25,10 @@
  
  #include "drivers_api.h"
@@ -21,10 +19,8 @@ Index: libfprint/libfprint/drivers/uru4000.c
  #define EP_INTR			(1 | LIBUSB_ENDPOINT_IN)
  #define EP_DATA			(2 | LIBUSB_ENDPOINT_IN)
  #define USB_RQ			0x04
-Index: libfprint/libfprint/drivers/vfs101.c
-===================================================================
---- libfprint.orig/libfprint/drivers/vfs101.c
-+++ libfprint/libfprint/drivers/vfs101.c
+--- a/libfprint/drivers/vfs101.c
++++ b/libfprint/drivers/vfs101.c
 @@ -21,6 +21,10 @@
  
  #include "drivers_api.h"
@@ -36,10 +32,8 @@ Index: libfprint/libfprint/drivers/vfs101.c
  /* Input-Output usb endpoint */
  #define EP_IN(n)	(n | LIBUSB_ENDPOINT_IN)
  #define EP_OUT(n)	(n | LIBUSB_ENDPOINT_OUT)
-Index: libfprint/libfprint/drivers/vfs301.c
-===================================================================
---- libfprint.orig/libfprint/drivers/vfs301.c
-+++ libfprint/libfprint/drivers/vfs301.c
+--- a/libfprint/drivers/vfs301.c
++++ b/libfprint/drivers/vfs301.c
 @@ -24,6 +24,10 @@
  #include "drivers_api.h"
  #include "vfs301_proto.h"
@@ -51,10 +45,8 @@ Index: libfprint/libfprint/drivers/vfs301.c
  /************************** GENERIC STUFF *************************************/
  
  /* Submit asynchronous sleep */
-Index: libfprint/libfprint/drivers/elan.c
-===================================================================
---- libfprint.orig/libfprint/drivers/elan.c
-+++ libfprint/libfprint/drivers/elan.c
+--- a/libfprint/drivers/elan.c
++++ b/libfprint/drivers/elan.c
 @@ -49,6 +49,10 @@
    else if (len > 2)                                           \
      fp_dbg("%04x... (%d bytes)", buf[0] << 8 | buf[1], len)

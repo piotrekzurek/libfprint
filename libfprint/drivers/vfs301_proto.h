@@ -18,7 +18,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include <libusb.h>
+#include <libusb-1.0/libusb.h>
 
 enum {
 	VFS301_DEFAULT_WAIT_TIMEOUT = 300,
@@ -109,7 +109,7 @@ typedef struct {
 
 	unsigned char scan[VFS301_FP_WIDTH];
 
-	/* A offseted, stretched, inverted copy of scan... probably could
+	/* A offsetted, stretched, inverted copy of scan... probably could
 	 * serve finger motion speed detection?
 	 * Seems to be subdivided to some 10B + 53B + 1B blocks */
 	unsigned char mirror[64];

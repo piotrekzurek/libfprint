@@ -1,5 +1,5 @@
 project('libfprint', [ 'c', 'cpp' ],
-        version: '0.99.0',
+        version: '1.0',
         license: 'LGPLv2.1+',
         default_options: [
           'buildtype=debugoptimized',
@@ -27,7 +27,9 @@ common_cflags = cc.get_supported_arguments([
     '-Wstrict-prototypes',
     '-Werror-implicit-function-declaration',
     '-Wno-pointer-sign',
-    '-Wshadow'
+    '-Wshadow',
+    '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_50',
+    '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_50',
 ])
 
 # maintaining compatibility with the previous libtool versioning
@@ -39,13 +41,13 @@ revision = 0
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
 
 # Dependencies
-glib_dep = dependency('glib-2.0', version: '>= 2.28')
+glib_dep = dependency('glib-2.0', version: '>= 2.50')
 libusb_dep = dependency('libusb-1.0', version: '>= 0.9.1')
 mathlib_dep = cc.find_library('m', required: false)
 
 # Drivers
 drivers = get_option('drivers').split(',')
-all_drivers = [ 'upekts', 'upektc', 'upeksonly', 'vcom5s', 'uru4000', 'aes1610', 'aes1660', 'aes2501', 'aes2550', 'aes2660', 'aes3500', 'aes4000', 'vfs101', 'vfs301', 'vfs5011', 'upektc_img', 'etes603', 'vfs0050', 'vfs0090', 'elan' ]
+all_drivers = [ 'upekts', 'upektc', 'upeksonly', 'vcom5s', 'uru4000', 'aes1610', 'aes1660', 'aes2501', 'aes2550', 'aes2660', 'aes3500', 'aes4000', 'vfs101', 'vfs301', 'vfs5011', 'upektc_img', 'etes603', 'vfs0050', 'elan' ]
 primitive_drivers = [ 'upekts' ]
 
 if drivers == [ 'all' ]
@@ -57,7 +59,6 @@ if drivers.length() == 0 or drivers[0] == ''
 endif
 
 nss_dep = dependency('', required: false)
-openssl_dep = dependency('', required: false)
 imaging_dep = dependency('', required: false)
 foreach driver: drivers
     if driver == 'uru4000'
@@ -67,20 +68,6 @@ foreach driver: drivers
         endif
     endif
     if driver == 'aes3500' or driver == 'aes4000'
-        imaging_dep = dependency('pixman-1', required: false)
-        if not imaging_dep.found()
-            error('pixman is required for imaging support')
-        endif
-    endif
-    if driver == 'vfs0090'
-        nss_dep = dependency('nss', required: false)
-        if not nss_dep.found()
-            error('NSS is required for the Validity VFS0090 driver')
-        endif
-        openssl_dep = dependency('openssl', required: false)
-        if not openssl_dep.found()
-            error('OpenSSL is required for the Validity VFS0090 driver')
-        endif
         imaging_dep = dependency('pixman-1', required: false)
         if not imaging_dep.found()
             error('pixman is required for imaging support')

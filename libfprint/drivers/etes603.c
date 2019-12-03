@@ -1316,7 +1316,7 @@ static void m_init_state(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 		fpi_ssm_next_state(ssm);
 		break;
 	case INIT_SENSOR_REQ:
-		/* In captured traffic, those are splitted. */
+		/* In captured traffic, those are split. */
 		msg_set_regs(dev, 18, REG_MODE_CONTROL, REG_MODE_SLEEP,
 			REG_50, 0x0F, REG_GAIN, 0x04, REG_VRT, 0x08,
 			REG_VRB, 0x0D, REG_VCO_CONTROL, REG_VCO_RT,
@@ -1390,18 +1390,12 @@ static void m_init_complete(fpi_ssm *ssm, struct fp_dev *_dev, void *user_data)
 	fpi_ssm_free(ssm);
 }
 
-static int dev_activate(struct fp_img_dev *idev, enum fp_imgdev_state state)
+static int dev_activate(struct fp_img_dev *idev)
 {
 	struct etes603_dev *dev = FP_INSTANCE_DATA(FP_DEV(idev));
 	fpi_ssm *ssm;
 
 	g_assert(dev);
-
-	if (state != IMGDEV_STATE_AWAIT_FINGER_ON) {
-		fp_err("The driver is in an unexpected state: %d.", state);
-		fpi_imgdev_activate_complete(idev, 1);
-		return -1;
-	}
 
 	/* Reset info and data */
 	dev->is_active = TRUE;
@@ -1430,8 +1424,9 @@ static void dev_deactivate(struct fp_img_dev *idev)
 	/* this can be called even if still activated. */
 	if (dev->is_active == TRUE) {
 		dev->is_active = FALSE;
-		m_exit_start(idev);
 	}
+
+	m_exit_start(idev);
 }
 
 static int dev_open(struct fp_img_dev *idev, unsigned long driver_data)

@@ -4,10 +4,8 @@ Description: Use non-versionned libusb.h path
  Hopefully fixes the kFreeBSD FTBFS.
 Author: Didier Raboud <odyx@debian.org>
 Last-Update: 2013-03-03
-Index: libfprint/libfprint/drivers/vfs301_proto.h
-===================================================================
---- libfprint.orig/libfprint/drivers/vfs301_proto.h
-+++ libfprint/libfprint/drivers/vfs301_proto.h
+--- a/libfprint/drivers/vfs301_proto.h
++++ b/libfprint/drivers/vfs301_proto.h
 @@ -18,7 +18,7 @@
   * License along with this library; if not, write to the Free Software
   * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA

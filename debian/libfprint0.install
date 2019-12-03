@@ -1,2 +1,2 @@
-usr/lib/*/lib*.so.*
 lib/udev/rules.d/
+usr/lib/*/lib*.so.*
