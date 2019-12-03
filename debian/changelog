@@ -1,9 +1,9 @@
-libfprint (1:1.0-1+vfs0090~e1) UNRELEASED; urgency=medium
+libfprint (1:1.0-1+vfs0090~e1) eoan; urgency=medium
 
   * Merge with salsa branch
   * vfs0090: Various driver cleanups
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 03 Dec 2019 16:38:57 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 03 Dec 2019 16:41:36 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
