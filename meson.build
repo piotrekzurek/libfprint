@@ -1,12 +1,14 @@
 project('libfprint', [ 'c', 'cpp' ],
-        version: '1.0',
+        version: '1.90.0',
         license: 'LGPLv2.1+',
         default_options: [
           'buildtype=debugoptimized',
           'warning_level=1',
           'c_std=c99',
         ],
-        meson_version: '>= 0.45.0')
+        meson_version: '>= 0.46.0')
+
+gnome = import('gnome')
 
 add_project_arguments([ '-D_GNU_SOURCE' ], language: 'c')
 add_project_arguments([ '-DG_LOG_DOMAIN="libfprint"' ], language: 'c')
@@ -19,9 +21,9 @@ host_system = host_machine.system()
 
 common_cflags = cc.get_supported_arguments([
     '-fgnu89-inline',
-    '-fvisibility=hidden',
     '-std=gnu99',
     '-Wall',
+    '-Wtype-limits',
     '-Wundef',
     '-Wunused',
     '-Wstrict-prototypes',
@@ -35,23 +37,30 @@ common_cflags = cc.get_supported_arguments([
 # maintaining compatibility with the previous libtool versioning
 # current = binary - interface
 # revision = interface
-soversion = 0
+soversion = 2
 current = 0
 revision = 0
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
 
 # Dependencies
 glib_dep = dependency('glib-2.0', version: '>= 2.50')
-libusb_dep = dependency('libusb-1.0', version: '>= 0.9.1')
+gio_dep = dependency('gio-unix-2.0', version: '>= 2.44.0')
+gusb_dep = dependency('gusb', version: '>= 0.3.0')
 mathlib_dep = cc.find_library('m', required: false)
 
 # Drivers
 drivers = get_option('drivers').split(',')
-all_drivers = [ 'upekts', 'upektc', 'upeksonly', 'vcom5s', 'uru4000', 'aes1610', 'aes1660', 'aes2501', 'aes2550', 'aes2660', 'aes3500', 'aes4000', 'vfs101', 'vfs301', 'vfs5011', 'upektc_img', 'etes603', 'vfs0050', 'elan' ]
-primitive_drivers = [ 'upekts' ]
+virtual_drivers = [ 'virtual_image' ]
+default_drivers = [ 'upektc_img', 'vfs5011', 'aes3500', 'aes4000', 'aes1610', 'aes1660', 'aes2660', 'aes2501', 'aes2550', 'vfs101', 'vfs301', 'vfs0050', 'etes603', 'vcom5s', 'synaptics', 'elan', 'uru4000', 'upektc', 'upeksonly', 'upekts' ]
+
+all_drivers = default_drivers + virtual_drivers
 
 if drivers == [ 'all' ]
     drivers = all_drivers
+endif
+
+if drivers == [ 'default' ]
+    drivers = default_drivers
 endif
 
 if drivers.length() == 0 or drivers[0] == ''
@@ -60,6 +69,7 @@ endif
 
 nss_dep = dependency('', required: false)
 imaging_dep = dependency('', required: false)
+libfprint_conf.set10('HAVE_PIXMAN', false)
 foreach driver: drivers
     if driver == 'uru4000'
         nss_dep = dependency('nss', required: false)
@@ -72,27 +82,23 @@ foreach driver: drivers
         if not imaging_dep.found()
             error('pixman is required for imaging support')
         endif
+
+        libfprint_conf.set10('HAVE_PIXMAN', true)
     endif
     if not all_drivers.contains(driver)
         error('Invalid driver \'' + driver + '\'')
     endif
 endforeach
 
-# Export the drivers' structures to the core code
-drivers_struct_list = ''
-drivers_img_array = 'static struct fp_img_driver * const img_drivers[] = {\n'
-drivers_primitive_array = 'static struct fp_driver * const primitive_drivers[] = {\n'
+# Export the drivers' types to the core code
+drivers_type_list = '#include <glib-object.h>\n'
+drivers_type_func = 'void fpi_get_driver_types(GArray *drivers)\n{\n\tGType t;\n'
 foreach driver: drivers
-    if primitive_drivers.contains(driver)
-        drivers_struct_list += 'extern struct fp_driver ' + driver + '_driver;\n'
-        drivers_primitive_array += '	&' + driver + '_driver,\n'
-    else
-        drivers_struct_list += 'extern struct fp_img_driver ' + driver + '_driver;\n'
-        drivers_img_array += '	&' + driver + '_driver,\n'
-    endif
+    drivers_type_list += 'extern GType (fpi_device_' + driver + '_get_type) (void);\n'
+    drivers_type_func += '	t = fpi_device_' + driver + '_get_type(); g_array_append_val (drivers, t);\n'
 endforeach
-drivers_img_array += '};'
-drivers_primitive_array += '};'
+drivers_type_list += ''
+drivers_type_func += '};'
 
 root_inc = include_directories('.')
 
@@ -105,14 +111,6 @@ if get_option('udev_rules')
     endif
 endif
 
-if get_option('x11-examples')
-    x11_dep = cc.find_library('X11')
-    xv_dep = dependency('xv', required: false)
-    if not xv_dep.found()
-        error('XV is required for X11 examples')
-    endif
-endif
-
 if get_option('gtk-examples')
     gnome = import('gnome')
 
@@ -122,7 +120,6 @@ if get_option('gtk-examples')
     endif
 endif
 
-libfprint_conf.set('API_EXPORTED', '__attribute__((visibility("default")))')
 configure_file(output: 'config.h', configuration: libfprint_conf)
 
 subdir('libfprint')
@@ -135,6 +132,11 @@ if get_option('gtk-examples')
     subdir('demo')
 endif
 
+# The tests require introspeciton support to run
+if get_option('introspection')
+    subdir('tests')
+endif
+
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
   name: 'libfprint',
@@ -142,6 +144,6 @@ pkgconfig.generate(
   version: meson.project_version(),
   libraries: libfprint,
   subdirs: 'libfprint',
-  filebase: 'libfprint',
+  filebase: 'libfprint2',
   install_dir: join_paths(get_option('libdir'), 'pkgconfig'),
 )
