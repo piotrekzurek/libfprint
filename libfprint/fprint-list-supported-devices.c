@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2009 Red Hat <mjg@redhat.com> 
+ * Copyright (C) 2009 Red Hat <mjg@redhat.com>
  * Copyright (C) 2008 Bastien Nocera <hadess@hadess.net>
  * Copyright (C) 2008 Timo Hoenig <thoenig@suse.de>, <thoenig@nouse.net>
+ * Coypright (C) 2019 Benjamin Berg <bberg@redhat.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,69 +23,87 @@
 #include <stdio.h>
 #include <locale.h>
 
-#include "fp_internal.h"
+#include "fpi-context.h"
+#include "fpi-device.h"
 
 GHashTable *printed = NULL;
 
-static GList *insert_driver (GList *list,
-			   struct fp_driver *driver)
+static GList *
+insert_drivers (GList *list)
 {
-    int i;
+  g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof (GType));
+  gint i;
 
-    for (i = 0; driver->id_table[i].vendor != 0; i++) {
-        char *key;
+  fpi_get_driver_types (drivers);
 
-	key = g_strdup_printf ("%04x:%04x", driver->id_table[i].vendor, driver->id_table[i].product);
+  /* Find the best driver to handle this USB device. */
+  for (i = 0; i < drivers->len; i++)
+    {
+      GType driver = g_array_index (drivers, GType, i);
+      FpDeviceClass *cls = FP_DEVICE_CLASS (g_type_class_ref (driver));
+      const FpIdEntry *entry;
 
-	if (g_hash_table_lookup (printed, key) != NULL) {
-	    g_free (key);
-	    continue;
-	}
+      if (cls->type != FP_DEVICE_TYPE_USB)
+        {
+          g_type_class_unref (cls);
+          continue;
+        }
 
-	g_hash_table_insert (printed, key, GINT_TO_POINTER (1));
+      for (entry = cls->id_table; entry->vid; entry++)
+        {
+          char *key;
 
-	list = g_list_prepend (list, g_strdup_printf ("%s | %s\n", key, driver->full_name));
+          key = g_strdup_printf ("%04x:%04x", entry->vid, entry->pid);
+
+          if (g_hash_table_lookup (printed, key) != NULL)
+            {
+              g_free (key);
+              continue;
+            }
+
+          g_hash_table_insert (printed, key, GINT_TO_POINTER (1));
+
+          list = g_list_prepend (list, g_strdup_printf ("%s | %s\n", key, cls->full_name));
+        }
+
+      g_type_class_unref (cls);
     }
 
-    return list;
+  return list;
 }
 
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
-    struct fp_driver **driver_list;
-    guint i;
-    GList *list, *l;
+  GList *list, *l;
 
-    setlocale (LC_ALL, "");
+  setlocale (LC_ALL, "");
 
-    driver_list = fprint_get_drivers ();
+  printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
-    printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  g_print ("%% lifprint — Supported Devices\n");
+  g_print ("%% Bastien Nocera, Daniel Drake\n");
+  g_print ("%% 2018\n");
+  g_print ("\n");
 
-    g_print ("%% lifprint — Supported Devices\n");
-    g_print ("%% Bastien Nocera, Daniel Drake\n");
-    g_print ("%% 2018\n");
-    g_print ("\n");
+  g_print ("# Supported Devices\n");
+  g_print ("\n");
+  g_print ("This is a list of supported devices in libfprint's development version. Those drivers might not all be available in the stable, released version. If in doubt, contact your distribution or systems integrator for details.\n");
+  g_print ("\n");
+  g_print ("## USB devices\n");
+  g_print ("\n");
+  g_print ("USB ID | Driver\n");
+  g_print ("------------ | ------------\n");
 
-    g_print ("# Supported Devices\n");
-    g_print ("\n");
-    g_print ("This is a list of supported devices in libfprint's development version. Those drivers might not all be available in the stable, released version. If in doubt, contact your distribution or systems integrator for details.\n");
-    g_print ("\n");
-    g_print ("## USB devices\n");
-    g_print ("\n");
-    g_print ("USB ID | Driver\n");
-    g_print ("------------ | ------------\n");
+  list = NULL;
+  list = insert_drivers (list);
 
-    list = NULL;
-    for (i = 0; driver_list[i] != NULL; i++)
-	list = insert_driver (list, driver_list[i]);
+  list = g_list_sort (list, (GCompareFunc) g_strcmp0);
+  for (l = list; l != NULL; l = l->next)
+    g_print ("%s", (char *) l->data);
 
-    list = g_list_sort (list, (GCompareFunc) g_strcmp0);
-    for (l = list; l != NULL; l = l->next)
-        g_print ("%s", (char *) l->data);
+  g_list_free_full (list, g_free);
+  g_hash_table_destroy (printed);
 
-    g_list_free_full (list, g_free);
-    g_hash_table_destroy (printed);
-
-    return 0;
+  return 0;
 }
