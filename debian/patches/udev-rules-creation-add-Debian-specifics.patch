@@ -3,29 +3,30 @@ Description: Tweak the udev rules creator for Debian usage
  ones; mode and group to all.
 Author: Didier Raboud <odyx@debian.org>
 Origin: vendor
-Last-Update: 2015-03-03
+Last-Update: 2020-01-10
 
 --- a/libfprint/fprint-list-udev-rules.c
 +++ b/libfprint/fprint-list-udev-rules.c
-@@ -63,9 +63,6 @@ static void print_driver (struct fp_driv
- 		break;
- 	    }
- 	}
--	if (blacklist)
--	    continue;
+@@ -66,9 +66,6 @@ print_driver (const FpDeviceClass *cls)
+         if (entry->vid == bl_entry->vid && entry->pid == bl_entry->pid)
+           break;
+ 
+-      if (bl_entry->vid != 0)
+-        continue;
 -
- 	key = g_strdup_printf ("%04x:%04x", driver->id_table[i].vendor, driver->id_table[i].product);
+       key = g_strdup_printf ("%04x:%04x", entry->vid, entry->pid);
  
- 	if (g_hash_table_lookup (printed, key) != NULL) {
-@@ -78,7 +75,10 @@ static void print_driver (struct fp_driv
- 	if (num_printed == 0)
- 	    printf ("# %s\n", driver->full_name);
+       if (g_hash_table_lookup (printed, key) != NULL)
+@@ -82,8 +79,10 @@ print_driver (const FpDeviceClass *cls)
+       if (num_printed == 0)
+         g_print ("# %s\n", cls->full_name);
  
--	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n", driver->id_table[i].vendor, driver->id_table[i].product);
-+	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", ", driver->id_table[i].vendor, driver->id_table[i].product);
-+	if (!blacklist)
-+		printf ("TEST==\"power/control\", ATTR{power/control}=\"auto\", ");
-+	printf ("MODE=\"0664\", GROUP=\"plugdev\"\n");
- 	printf ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n", driver->id_table[i].vendor, driver->id_table[i].product, driver->full_name);
- 	num_printed++;
-     }
+-      g_print ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", TEST==\"power/control\", ATTR{power/control}=\"auto\"\n",
+-               entry->vid, entry->pid);
++      g_print ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", ", entry->vid, entry->pid);
++      if (bl_entry->vid == 0)
++          g_print ("TEST==\"power/control\", ATTR{power/control}=\"auto\", ");
++      g_print ("MODE=\"0664\", GROUP=\"plugdev\"\n");
+       g_print ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n",
+                entry->vid, entry->pid, cls->full_name);
+       num_printed++;

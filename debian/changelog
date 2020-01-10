@@ -5,6 +5,7 @@ libfprint (1:1.90.0-1) UNRELEASED; urgency=medium
       Build-Depends-Indep
     - Drop d/patches/kFreeBSD_FTBFS_add_ETIME_definition.patch and
       d/patches/use-non-versionned-libusbh-path.patch, not needed anymore
+    - debian/patches/udev-rules-creation-add-Debian-specifics.patch: refreshed
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 10 Jan 2020 02:26:09 +0100
 
