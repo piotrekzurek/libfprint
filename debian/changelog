@@ -10,8 +10,9 @@ libfprint (1:1.90.0-1) UNRELEASED; urgency=medium
   * Bump debhelper compatibility version to 12
   * Add gobject-introspection and libgirepository1.0-dev to the
     build-dependencies and install the GObject introspection bindings
+  * debian/control: Bump Standards-Version to 4.4.1 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 10 Jan 2020 02:56:26 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 10 Jan 2020 03:12:02 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
