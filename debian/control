@@ -4,7 +4,9 @@ Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
 Build-Depends: debhelper-compat (= 12),
+               gobject-introspection,
                gtk-doc-tools,
+               libgirepository1.0-dev,
                libglib2.0-dev (>= 2.50),
                libgusb-dev (>= 0.3.0),
                libnss3-dev,
@@ -42,7 +44,9 @@ Description: async fingerprint library of fprint project, shared libraries
 Package: libfprint2-dev
 Section: libdevel
 Architecture: any
-Depends: libfprint2 (= ${binary:Version}), ${misc:Depends}
+Depends: gir1.2-fprint-2.0 (= ${binary:Version}),
+         libfprint2 (= ${binary:Version}),
+         ${misc:Depends}
 Suggests: libfprint-doc
 Description: async fingerprint library of fprint project, development headers
  The fprint project aims to support for consumer fingerprint reader devices.
@@ -81,3 +85,27 @@ Description: async fingerprint library of fprint project, API documentation
  allowing fprint to perform non-blocking device tasks.
  .
  This package provides the API documentation.
+
+Package: gir1.2-fprint-2.0
+Architecture: any
+Multi-Arch: same
+Section: introspection
+Depends: ${gir:Depends}, ${misc:Depends}, ${shlibs:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: async fingerprint library of fprint project, gir bindings
+ The fprint project aims to support for consumer fingerprint reader devices.
+ .
+ Previously, Linux support for such devices has been scattered amongst different
+ projects (many incomplete) and inconsistent in that application developers
+ would have to implement support for each type of fingerprint reader separately.
+ The idea is to change that by providing a central system to support all the
+ fingerprint readers as it's possible to get hands on.
+ .
+ libfprint is the centre of efforts, this component does the dirty job of
+ talking to fingerprint reading devices, and processing fingerprint data.
+ .
+ This library depends on the new libusb, which performs asynchronous callbacks,
+ allowing fprint to perform non-blocking device tasks.
+ .
+ This package can be used by other packages using the GIRepository format to
+ generate dynamic bindings.
