@@ -3,7 +3,7 @@ Priority: optional
 Section: libs
 Maintainer: FingerForce Team <fingerforce-devel@lists.alioth.debian.org>
 Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
-Build-Depends: debhelper (>= 10.3),
+Build-Depends: debhelper-compat (= 12),
                gtk-doc-tools,
                libglib2.0-dev (>= 2.50),
                libgusb-dev (>= 0.3.0),
