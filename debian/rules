@@ -11,7 +11,7 @@ override_dh_auto_configure:
 
 override_dh_install:
 	mv debian/tmp/lib/udev/rules.d/60-fprint-autosuspend.rules \
-		debian/tmp/lib/udev/rules.d/60-libfprint0.rules
+		debian/tmp/lib/udev/rules.d/60-libfprint2.rules
 	sed -i '/^Requires.private\|^Libs.private/ d' \
-		debian/tmp/usr/lib/*/pkgconfig/libfprint.pc
+		debian/tmp/usr/lib/*/pkgconfig/libfprint2.pc
 	dh_install
