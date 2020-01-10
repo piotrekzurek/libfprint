@@ -6,12 +6,12 @@ Uploaders: Ulises Vitulli <dererk@debian.org>, Didier Raboud <odyx@debian.org>
 Build-Depends: debhelper (>= 10.3),
                gtk-doc-tools,
                libglib2.0-dev (>= 2.50),
+               libgusb-dev (>= 0.3.0),
                libnss3-dev,
                libpixman-1-dev,
-               libusb-1.0-0-dev,
                libxv-dev,
                meson
-Build-Depends-Indep: libglib2.0-doc
+Build-Depends-Indep: libglib2.0-doc <!nodoc>, libgusb-doc <!nodoc>
 Standards-Version: 4.4.0
 Homepage: https://www.freedesktop.org/wiki/Software/fprint/libfprint
 Vcs-Browser: https://salsa.debian.org/debian/libfprint
