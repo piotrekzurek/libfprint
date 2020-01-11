@@ -14,8 +14,9 @@ libfprint (1:1.90.0-1) UNRELEASED; urgency=medium
   * debian/control: Bump Standards-Version to 4.4.1 (no further changes)
   * debian/control: Build-Depends on python3-cairo, python3-gi, umockdev for
     the testsuite
+  * Update debian/libfprint2.postinst for the new supported readers
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 11 Jan 2020 01:29:59 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 11 Jan 2020 01:47:55 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
