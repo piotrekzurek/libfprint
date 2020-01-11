@@ -2,6 +2,7 @@ Description: Tweak the udev rules creator for Debian usage
  List all devices; automatic power/control only for the non-blacklisted
  ones; mode and group to all.
 Author: Didier Raboud <odyx@debian.org>
+Author: Sebastien Bacher <seb128@ubuntu.com>
 Origin: vendor
 Last-Update: 2020-01-10
 

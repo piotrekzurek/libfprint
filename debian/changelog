@@ -6,6 +6,7 @@ libfprint (1:1.90.0-1) UNRELEASED; urgency=medium
     - Drop d/patches/kFreeBSD_FTBFS_add_ETIME_definition.patch and
       d/patches/use-non-versionned-libusbh-path.patch, not needed anymore
     - debian/patches/udev-rules-creation-add-Debian-specifics.patch: refreshed
+      by Sebastien Bacher, thanks!
     - Bump the soname to libfprint2
   * Bump debhelper compatibility version to 12
   * Add gobject-introspection and libgirepository1.0-dev to the
