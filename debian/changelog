@@ -11,8 +11,10 @@ libfprint (1:1.90.0-1) UNRELEASED; urgency=medium
   * Add gobject-introspection and libgirepository1.0-dev to the
     build-dependencies and install the GObject introspection bindings
   * debian/control: Bump Standards-Version to 4.4.1 (no further changes)
+  * debian/control: Build-Depends on python3-cairo, python3-gi, umockdev for
+    the testsuite
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 10 Jan 2020 03:12:02 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 11 Jan 2020 01:29:59 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
