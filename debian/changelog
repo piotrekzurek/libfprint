@@ -16,8 +16,9 @@ libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
   * debian/control: Build-Depends on python3-cairo, python3-gi, umockdev for
     the testsuite
   * Update debian/libfprint2.postinst for the new supported readers
+  * debian/gbp.conf: Upstream tags have changed format
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 11 Jan 2020 01:55:16 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 12 Feb 2020 18:18:14 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
