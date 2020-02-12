@@ -1,4 +1,4 @@
-libfprint (1:1.90.0-1) UNRELEASED; urgency=medium
+libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
     - Replace libusb-1.0 build-dependency by gusb and add libgusb-doc to the
@@ -8,6 +8,7 @@ libfprint (1:1.90.0-1) UNRELEASED; urgency=medium
     - debian/patches/udev-rules-creation-add-Debian-specifics.patch: refreshed
       by Sebastien Bacher, thanks!
     - Bump the soname to libfprint2
+    - Bump libglib2.0-dev and meson minimal versions
   * Bump debhelper compatibility version to 12
   * Add gobject-introspection and libgirepository1.0-dev to the
     build-dependencies and install the GObject introspection bindings
