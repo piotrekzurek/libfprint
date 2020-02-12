@@ -17,12 +17,16 @@ c.enumerate()
 devices = c.get_devices()
 
 d = devices[0]
+del devices
 
 d.open_sync()
 
 img = d.capture_sync(True)
 
 d.close_sync()
+
+del d
+del c
 
 width = img.get_width()
 height = img.get_height()
@@ -36,10 +40,12 @@ c_buf = c_img.get_data()
 
 for x in range(width):
     for y in range(height):
+        # The upper byte is don't care, but the location depends on endianness,
+        # so just set all of them.
         c_buf[y * c_rowstride + x * 4 + 0] = buf[y * width + x]
         c_buf[y * c_rowstride + x * 4 + 1] = buf[y * width + x]
         c_buf[y * c_rowstride + x * 4 + 2] = buf[y * width + x]
-        # Byte 4 is don't care
+        c_buf[y * c_rowstride + x * 4 + 3] = buf[y * width + x]
 
 c_img.mark_dirty()
 c_img.write_to_png(sys.argv[1])

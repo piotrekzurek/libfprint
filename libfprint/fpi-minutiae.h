@@ -17,13 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __FPRINT_INTERNAL_H__
-#define __FPRINT_INTERNAL_H__
-
-#include "fpi-log.h"
-#include "nbis-helpers.h"
-#include "fpi-image.h"
-#include "fpi-image-device.h"
+#pragma once
 
 /* fp_minutia structure definition */
 struct fp_minutia
@@ -49,6 +43,3 @@ struct fp_minutiae
   int                 num;
   struct fp_minutia **list;
 };
-
-
-#endif

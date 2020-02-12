@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __synaptics_h__
-#define __synaptics_h__
+#pragma once
 
 #include "fpi-device.h"
 #include "fpi-ssm.h"
@@ -111,8 +110,6 @@ struct _FpiDeviceSynaptics
   FpiSsm               *cmd_ssm;
   FpiUsbTransfer       *cmd_pending_transfer;
   gboolean              cmd_complete_on_removal;
-  GError               *cmd_complete_error;
-  void                 *cmd_complete_data;
 
   bmkt_sensor_version_t mis_version;
 
@@ -126,5 +123,3 @@ struct _FpiDeviceSynaptics
   struct syna_enroll_resp_data enroll_resp_data;
   syna_state_t                 state;
 };
-
-#endif //__synaptics_h__

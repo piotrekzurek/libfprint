@@ -219,7 +219,6 @@ async_send (FpiSsm        *ssm,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            async_send_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Callback of asynchronous recv */
@@ -282,7 +281,6 @@ async_recv (FpiSsm        *ssm,
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            async_recv_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void async_load (FpiSsm        *ssm,
@@ -369,17 +367,6 @@ async_load (FpiSsm        *ssm,
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            async_load_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
-}
-
-/* Submit asynchronous sleep */
-static void
-async_sleep (unsigned int   msec,
-             FpiSsm        *ssm,
-             FpImageDevice *dev)
-{
-  fpi_device_add_timeout (FP_DEVICE (dev), msec,
-                          fpi_ssm_next_state_timeout_cb, ssm);
 }
 
 /* Swap ssm states */
@@ -798,7 +785,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_LOOP_0_SLEEP:
       /* Wait fingerprint scanning */
-      async_sleep (50, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 50, NULL);
       break;
 
     case M_LOOP_0_GET_STATE:
@@ -841,7 +828,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
       img_extract (ssm, dev);
 
       /* Wait handling image */
-      async_sleep (10, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 10, NULL);
       break;
 
     case M_LOOP_0_CHECK_ACTION:
@@ -864,7 +851,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
       if (vfs_finger_state (self) == VFS_FINGER_PRESENT)
         {
           fpi_image_device_report_finger_status (dev, TRUE);
-          async_sleep (250, ssm, dev);
+          fpi_ssm_next_state_delayed (ssm, 250, NULL);
         }
       else
         {
@@ -894,7 +881,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
 
     case M_LOOP_1_SLEEP:
       /* Wait fingerprint scanning */
-      async_sleep (10, ssm, dev);
+      fpi_ssm_next_state_delayed (ssm, 10, NULL);
       break;
 
     case M_LOOP_2_ABORT_PRINT:
@@ -930,7 +917,7 @@ m_loop_state (FpiSsm *ssm, FpDevice *_dev)
         {
           /* Wait aborting */
           self->counter++;
-          async_sleep (100, ssm, dev);
+          fpi_ssm_next_state_delayed (ssm, 100, NULL);
         }
       else
         {
@@ -960,7 +947,6 @@ m_loop_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 
   self->active = FALSE;
 
-  fpi_ssm_free (ssm);
 }
 
 /* Init ssm states */
@@ -1069,7 +1055,7 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev)
         {
           /* Wait aborting */
           self->counter++;
-          async_sleep (100, ssm, dev);
+          fpi_ssm_next_state_delayed (ssm, 100, NULL);
         }
       else
         {
@@ -1098,7 +1084,7 @@ m_init_state (FpiSsm *ssm, FpDevice *_dev)
             {
               /* Wait removing finger */
               self->counter++;
-              async_sleep (250, ssm, dev);
+              fpi_ssm_next_state_delayed (ssm, 250, NULL);
             }
           else
             {
@@ -1268,7 +1254,6 @@ m_init_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
     }
 
   /* Free sequential state machine */
-  fpi_ssm_free (ssm);
 }
 
 /* Activate device */

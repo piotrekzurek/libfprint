@@ -142,48 +142,50 @@ typedef void (*FpTimeoutFunc) (FpDevice *device,
                                gpointer  user_data);
 
 /**
- * FpDeviceAction:
- * @FP_DEVICE_ACTION_NONE: No action is active.
- * @FP_DEVICE_ACTION_PROBE: Probe device for support and information.
- * @FP_DEVICE_ACTION_OPEN: Device is currently being opened.
- * @FP_DEVICE_ACTION_CLOSE: Device is currently being closed.
- * @FP_DEVICE_ACTION_ENROLL: Device is currently enrolling.
- * @FP_DEVICE_ACTION_VERIFY: Device is currently verifying.
- * @FP_DEVICE_ACTION_IDENTIFY: Device is currently identifying.
- * @FP_DEVICE_ACTION_CAPTURE: Device is currently capturing an image.
- * @FP_DEVICE_ACTION_LIST: Device stored prints are being queried.
- * @FP_DEVICE_ACTION_DELETE: Device stored print is being deleted.
+ * FpiDeviceAction:
+ * @FPI_DEVICE_ACTION_NONE: No action is active.
+ * @FPI_DEVICE_ACTION_PROBE: Probe device for support and information.
+ * @FPI_DEVICE_ACTION_OPEN: Device is currently being opened.
+ * @FPI_DEVICE_ACTION_CLOSE: Device is currently being closed.
+ * @FPI_DEVICE_ACTION_ENROLL: Device is currently enrolling.
+ * @FPI_DEVICE_ACTION_VERIFY: Device is currently verifying.
+ * @FPI_DEVICE_ACTION_IDENTIFY: Device is currently identifying.
+ * @FPI_DEVICE_ACTION_CAPTURE: Device is currently capturing an image.
+ * @FPI_DEVICE_ACTION_LIST: Device stored prints are being queried.
+ * @FPI_DEVICE_ACTION_DELETE: Device stored print is being deleted.
  *
  * Current active action of the device. A driver can retrieve the action.
  */
 typedef enum {
-  FP_DEVICE_ACTION_NONE = 0,
-  FP_DEVICE_ACTION_PROBE,
-  FP_DEVICE_ACTION_OPEN,
-  FP_DEVICE_ACTION_CLOSE,
-  FP_DEVICE_ACTION_ENROLL,
-  FP_DEVICE_ACTION_VERIFY,
-  FP_DEVICE_ACTION_IDENTIFY,
-  FP_DEVICE_ACTION_CAPTURE,
-  FP_DEVICE_ACTION_LIST,
-  FP_DEVICE_ACTION_DELETE,
-} FpDeviceAction;
+  FPI_DEVICE_ACTION_NONE = 0,
+  FPI_DEVICE_ACTION_PROBE,
+  FPI_DEVICE_ACTION_OPEN,
+  FPI_DEVICE_ACTION_CLOSE,
+  FPI_DEVICE_ACTION_ENROLL,
+  FPI_DEVICE_ACTION_VERIFY,
+  FPI_DEVICE_ACTION_IDENTIFY,
+  FPI_DEVICE_ACTION_CAPTURE,
+  FPI_DEVICE_ACTION_LIST,
+  FPI_DEVICE_ACTION_DELETE,
+} FpiDeviceAction;
 
 GUsbDevice  *fpi_device_get_usb_device (FpDevice *device);
 const gchar *fpi_device_get_virtual_env (FpDevice *device);
 //const gchar *fpi_device_get_spi_dev (FpDevice *device);
 
 
-FpDeviceAction fpi_device_get_current_action (FpDevice *device);
+FpiDeviceAction fpi_device_get_current_action (FpDevice *device);
 gboolean fpi_device_action_is_cancelled (FpDevice *device);
 
 GError * fpi_device_retry_new (FpDeviceRetry error);
 GError * fpi_device_error_new (FpDeviceError error);
 
 GError * fpi_device_retry_new_msg (FpDeviceRetry error,
-                                   const gchar  *msg);
+                                   const gchar  *msg,
+                                   ...) G_GNUC_PRINTF (2, 3);
 GError * fpi_device_error_new_msg (FpDeviceError error,
-                                   const gchar  *msg);
+                                   const gchar  *msg,
+                                   ...) G_GNUC_PRINTF (2, 3);
 
 guint64 fpi_device_get_driver_data (FpDevice *device);
 
@@ -201,11 +203,11 @@ void fpi_device_get_delete_data (FpDevice *device,
 GCancellable *fpi_device_get_cancellable (FpDevice *device);
 
 
-
-GSource * fpi_device_add_timeout (FpDevice     *device,
-                                  gint          interval,
-                                  FpTimeoutFunc func,
-                                  gpointer      user_data);
+GSource * fpi_device_add_timeout (FpDevice      *device,
+                                  gint           interval,
+                                  FpTimeoutFunc  func,
+                                  gpointer       user_data,
+                                  GDestroyNotify destroy_notify);
 
 void fpi_device_set_nr_enroll_stages (FpDevice *device,
                                       gint      enroll_stages);
@@ -227,13 +229,9 @@ void fpi_device_close_complete (FpDevice *device,
 void fpi_device_enroll_complete (FpDevice *device,
                                  FpPrint  *print,
                                  GError   *error);
-void fpi_device_verify_complete (FpDevice      *device,
-                                 FpiMatchResult result,
-                                 FpPrint       *print,
-                                 GError        *error);
+void fpi_device_verify_complete (FpDevice *device,
+                                 GError   *error);
 void fpi_device_identify_complete (FpDevice *device,
-                                   FpPrint  *match,
-                                   FpPrint  *print,
                                    GError   *error);
 void fpi_device_capture_complete (FpDevice *device,
                                   FpImage  *image,
@@ -246,6 +244,14 @@ void fpi_device_list_complete (FpDevice  *device,
 
 void fpi_device_enroll_progress (FpDevice *device,
                                  gint      completed_stages,
+                                 FpPrint  *print,
+                                 GError   *error);
+void fpi_device_verify_report (FpDevice      *device,
+                               FpiMatchResult result,
+                               FpPrint       *print,
+                               GError        *error);
+void fpi_device_identify_report (FpDevice *device,
+                                 FpPrint  *match,
                                  FpPrint  *print,
                                  GError   *error);
 

@@ -68,7 +68,6 @@ aesX660_send_cmd_timeout (FpiSsm                *ssm,
                                    cmd_len, NULL);
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, timeout, NULL, callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -100,17 +99,6 @@ aesX660_read_response (FpiSsm                *ssm,
   transfer->ssm = ssm;
   transfer->short_is_error = short_is_error;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, cancel, callback, NULL);
-  fpi_usb_transfer_unref (transfer);
-}
-
-static void
-aesX660_send_cmd_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                     gpointer user_data, GError *error)
-{
-  if (!error)
-    fpi_ssm_next_state (transfer->ssm);
-  else
-    fpi_ssm_mark_failed (transfer->ssm, error);
 }
 
 static void
@@ -131,7 +119,9 @@ aesX660_read_calibrate_data_cb (FpiUsbTransfer *transfer,
       fp_dbg ("Bogus calibrate response: %.2x\n", data[0]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus calibrate response"));
+                                                     "Bogus calibrate "
+                                                     "response: %.2x",
+                                                     data[0]));
       return;
     }
 
@@ -175,7 +165,8 @@ finger_det_read_fd_data_cb (FpiUsbTransfer *transfer,
       fp_dbg ("Bogus FD response: %.2x\n", data[0]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus FD response"));
+                                                     "Bogus FD response %.2x",
+                                                     data[0]));
       return;
     }
 
@@ -212,7 +203,6 @@ finger_det_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 
   fp_dbg ("Finger detection completed");
   fpi_image_device_report_finger_status (dev, TRUE);
-  fpi_ssm_free (ssm);
 
   if (priv->deactivating)
     {
@@ -238,12 +228,12 @@ finger_det_run_state (FpiSsm *ssm, FpDevice *dev)
     {
     case FINGER_DET_SEND_LED_CMD:
       aesX660_send_cmd (ssm, dev, led_blink_cmd, sizeof (led_blink_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case FINGER_DET_SEND_FD_CMD:
       aesX660_send_cmd_timeout (ssm, dev, wait_for_finger_cmd, sizeof (wait_for_finger_cmd),
-                                aesX660_send_cmd_cb, 0);
+                                fpi_ssm_usb_transfer_cb, 0);
       break;
 
     case FINGER_DET_READ_FD_DATA:
@@ -433,14 +423,14 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
     {
     case CAPTURE_SEND_LED_CMD:
       aesX660_send_cmd (ssm, _dev, led_solid_cmd, sizeof (led_solid_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case CAPTURE_SEND_CAPTURE_CMD:
       g_byte_array_set_size (priv->stripe_packet, 0);
       aesX660_send_cmd (ssm, _dev, cls->start_imaging_cmd,
                         cls->start_imaging_cmd_len,
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case CAPTURE_READ_STRIPE_DATA:
@@ -463,7 +453,6 @@ capture_sm_complete (FpiSsm *ssm, FpDevice *device, GError *error)
   FpiDeviceAesX660Private *priv = fpi_device_aes_x660_get_instance_private (self);
 
   fp_dbg ("Capture completed");
-  fpi_ssm_free (ssm);
 
   if (priv->deactivating)
     {
@@ -538,7 +527,8 @@ activate_read_id_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fp_dbg ("Bogus read ID response: %.2x\n", data[AESX660_RESPONSE_TYPE_OFFSET]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus read ID response"));
+                                                     "Bogus read ID response %.2x",
+                                                     data[AESX660_RESPONSE_TYPE_OFFSET]));
       return;
     }
 
@@ -565,7 +555,8 @@ activate_read_id_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fp_dbg ("Failed to init device! init status: %.2x\n", data[7]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Failed to init device"));
+                                                     "Failed to init device %.2x",
+                                                     data[7]));
       break;
     }
 }
@@ -594,7 +585,8 @@ activate_read_init_cb (FpiUsbTransfer *transfer, FpDevice *device,
               data[3]);
       fpi_ssm_mark_failed (transfer->ssm,
                            fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                     "Bogus read init response"));
+                                                     "Bogus read init response: "
+                                                     "%.2x %.2x", data[0], data[3]));
       return;
     }
   priv->init_cmd_idx++;
@@ -623,13 +615,13 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev)
       priv->init_seq_idx = 0;
       fp_dbg ("Activate: set idle\n");
       aesX660_send_cmd (ssm, _dev, set_idle_cmd, sizeof (set_idle_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_SEND_READ_ID_CMD:
       fp_dbg ("Activate: read ID\n");
       aesX660_send_cmd (ssm, _dev, read_id_cmd, sizeof (read_id_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_READ_ID:
@@ -643,7 +635,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev)
       aesX660_send_cmd (ssm, _dev,
                         priv->init_seq[priv->init_cmd_idx].cmd,
                         priv->init_seq[priv->init_cmd_idx].len,
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_READ_INIT_RESPONSE:
@@ -653,7 +645,7 @@ activate_run_state (FpiSsm *ssm, FpDevice *_dev)
 
     case ACTIVATE_SEND_CALIBRATE_CMD:
       aesX660_send_cmd (ssm, _dev, calibrate_cmd, sizeof (calibrate_cmd),
-                        aesX660_send_cmd_cb);
+                        fpi_ssm_usb_transfer_cb);
       break;
 
     case ACTIVATE_READ_CALIBRATE_DATA:
@@ -666,7 +658,6 @@ static void
 activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 {
   fpi_image_device_activate_complete (FP_IMAGE_DEVICE (_dev), error);
-  fpi_ssm_free (ssm);
 
   if (!error)
     start_finger_detection (FP_IMAGE_DEVICE (_dev));

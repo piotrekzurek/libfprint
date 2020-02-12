@@ -19,13 +19,11 @@
 
 #define FP_COMPONENT "aeslib"
 
-#include "fp_internal.h"
+#include "drivers_api.h"
 
 #include <errno.h>
 #include <string.h>
 
-#include "fpi-usb-transfer.h"
-#include "fpi-assembling.h"
 #include "aeslib.h"
 
 #define MAX_REGWRITES_PER_REQUEST 16
@@ -88,7 +86,6 @@ do_write_regv (FpImageDevice *dev, struct write_regv_data *wdata, int upper_boun
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            write_regv_trf_complete, wdata);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* write the next batch of registers to be written, or if there are no more,

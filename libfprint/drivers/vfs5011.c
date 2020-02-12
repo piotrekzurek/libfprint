@@ -168,7 +168,6 @@ usbexchange_loop (FpiSsm *ssm, FpDevice *_dev)
       transfer->short_is_error = TRUE;
       fpi_usb_transfer_submit (transfer, data->timeout, NULL,
                                async_send_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case ACTION_RECEIVE:
@@ -180,7 +179,6 @@ usbexchange_loop (FpiSsm *ssm, FpDevice *_dev)
       transfer->ssm = ssm;
       fpi_usb_transfer_submit (transfer, data->timeout, NULL,
                                async_recv_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     default:
@@ -192,11 +190,13 @@ usbexchange_loop (FpiSsm *ssm, FpDevice *_dev)
 
 static void
 usb_exchange_async (FpiSsm                  *ssm,
-                    struct usbexchange_data *data)
+                    struct usbexchange_data *data,
+                    const char              *exchange_name)
 {
-  FpiSsm *subsm = fpi_ssm_new (FP_DEVICE (data->device),
-                               usbexchange_loop,
-                               data->stepcount);
+  FpiSsm *subsm = fpi_ssm_new_full (FP_DEVICE (data->device),
+                                    usbexchange_loop,
+                                    data->stepcount,
+                                    exchange_name);
 
   fpi_ssm_set_data (subsm, data, NULL);
   fpi_ssm_start_subsm (ssm, subsm);
@@ -212,8 +212,8 @@ vfs5011_get_deviation2 (struct fpi_line_asmbl_ctx *ctx, GSList *row1, GSList *ro
   int res = 0, mean = 0, i;
   const int size = 64;
 
-  buf1 = row1->data + 56;
-  buf2 = row2->data + 168;
+  buf1 = (unsigned char *) row1->data + 56;
+  buf2 = (unsigned char *) row2->data + 168;
 
   for (i = 0; i < size; i++)
     mean += (int) buf1[i] + (int) buf2[i];
@@ -234,7 +234,7 @@ vfs5011_get_pixel (struct fpi_line_asmbl_ctx *ctx,
                    GSList                    *row,
                    unsigned                   x)
 {
-  unsigned char *data = row->data + 8;
+  unsigned char *data = (unsigned char *) row->data + 8;
 
   return data[x];
 }
@@ -466,7 +466,6 @@ capture_chunk_async (FpDeviceVfs5011 *self,
   transfer->ssm = ssm;
   fpi_usb_transfer_submit (transfer, timeout, fpi_device_get_cancellable (FP_DEVICE (self)),
                            chunk_capture_callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /*
@@ -687,7 +686,7 @@ activate_loop (FpiSsm *ssm, FpDevice *_dev)
         self->init_sequence.receive_buf =
           g_malloc0 (VFS5011_RECEIVE_BUF_SIZE);
       self->init_sequence.timeout = 1000;
-      usb_exchange_async (ssm, &self->init_sequence);
+      usb_exchange_async (ssm, &self->init_sequence, "ACTIVATE REQUEST");
       break;
 
     case DEV_ACTIVATE_INIT_COMPLETE:
@@ -707,10 +706,7 @@ activate_loop (FpiSsm *ssm, FpDevice *_dev)
       break;
 
     case DEV_ACTIVATE_DATA_COMPLETE:
-      fpi_device_add_timeout (_dev, 1,
-                              fpi_ssm_next_state_timeout_cb,
-                              ssm);
-
+      fpi_ssm_next_state_delayed (ssm, 1, NULL);
       break;
 
     case DEV_ACTIVATE_PREPARE_NEXT_CAPTURE:
@@ -722,7 +718,7 @@ activate_loop (FpiSsm *ssm, FpDevice *_dev)
         self->init_sequence.receive_buf =
           g_malloc0 (VFS5011_RECEIVE_BUF_SIZE);
       self->init_sequence.timeout = VFS5011_DEFAULT_WAIT_TIMEOUT;
-      usb_exchange_async (ssm, &self->init_sequence);
+      usb_exchange_async (ssm, &self->init_sequence, "PREPARE CAPTURE");
       break;
 
     }
@@ -745,7 +741,6 @@ activate_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
       submit_image (ssm, self, dev);
       fpi_image_device_report_finger_status (dev, FALSE);
     }
-  fpi_ssm_free (ssm);
 
   self->loop_running = FALSE;
 
@@ -776,7 +771,7 @@ open_loop (FpiSsm *ssm, FpDevice *_dev)
       self->init_sequence.receive_buf =
         g_malloc0 (VFS5011_RECEIVE_BUF_SIZE);
       self->init_sequence.timeout = VFS5011_DEFAULT_WAIT_TIMEOUT;
-      usb_exchange_async (ssm, &self->init_sequence);
+      usb_exchange_async (ssm, &self->init_sequence, "DEVICE OPEN");
       break;
     }
   ;
@@ -793,7 +788,6 @@ open_loop_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   self->init_sequence.receive_buf = NULL;
 
   fpi_image_device_open_complete (dev, error);
-  fpi_ssm_free (ssm);
 }
 
 static void

@@ -1,38 +1,71 @@
 project('libfprint', [ 'c', 'cpp' ],
-        version: '1.90.0',
-        license: 'LGPLv2.1+',
-        default_options: [
-          'buildtype=debugoptimized',
-          'warning_level=1',
-          'c_std=c99',
-        ],
-        meson_version: '>= 0.46.0')
+    version: '1.90.1',
+    license: 'LGPLv2.1+',
+    default_options: [
+        'buildtype=debugoptimized',
+        'warning_level=1',
+        'c_std=gnu99',
+    ],
+    meson_version: '>= 0.49.0')
 
 gnome = import('gnome')
-
-add_project_arguments([ '-D_GNU_SOURCE' ], language: 'c')
-add_project_arguments([ '-DG_LOG_DOMAIN="libfprint"' ], language: 'c')
 
 libfprint_conf = configuration_data()
 
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 host_system = host_machine.system()
+glib_min_version = '2.56'
 
+glib_version_def = 'GLIB_VERSION_@0@_@1@'.format(
+    glib_min_version.split('.')[0], glib_min_version.split('.')[1])
 common_cflags = cc.get_supported_arguments([
-    '-fgnu89-inline',
-    '-std=gnu99',
     '-Wall',
+    '-Wcast-align',
+    '-Wformat-nonliteral',
+    '-Wformat-security',
+    '-Wformat=2',
+    '-Wignored-qualifiers',
+    '-Wlogical-op',
+    '-Wmissing-declarations',
+    '-Wmissing-format-attribute',
+    '-Wmissing-include-dirs',
+    '-Wmissing-noreturn',
+    '-Wpointer-arith',
+    '-Wshadow',
     '-Wtype-limits',
     '-Wundef',
     '-Wunused',
-    '-Wstrict-prototypes',
-    '-Werror-implicit-function-declaration',
-    '-Wno-pointer-sign',
-    '-Wshadow',
-    '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_50',
-    '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_50',
+    '-Werror=address',
+    '-Werror=array-bounds',
+    '-Werror=empty-body',
+    '-Werror=init-self',
+    '-Werror=int-to-pointer-cast',
+    '-Werror=main',
+    '-Werror=missing-braces',
+    '-Werror=nonnull',
+    '-Werror=redundant-decls',
+    '-Werror=return-type',
+    '-Werror=sequence-point',
+    '-Werror=trigraphs',
+    '-Werror=write-strings',
+    '-fno-strict-aliasing',
+    '-DGLIB_VERSION_MIN_REQUIRED=' + glib_version_def,
+    '-DGLIB_VERSION_MAX_ALLOWED=' + glib_version_def,
+    '-D_GNU_SOURCE',
+    '-DG_LOG_DOMAIN="@0@"'.format(meson.project_name()),
 ])
+c_cflags = cc.get_supported_arguments([
+    '-Wimplicit-function-declaration',
+    '-Wmissing-prototypes',
+    '-Wnested-externs',
+    '-Wold-style-definition',
+    '-Wstrict-prototypes',
+    '-Werror=implicit',
+    '-Werror=pointer-to-int-cast',
+])
+add_project_arguments(common_cflags + c_cflags, language: 'c')
+add_project_arguments(common_cflags, language: 'cpp')
 
 # maintaining compatibility with the previous libtool versioning
 # current = binary - interface
@@ -41,17 +74,42 @@ soversion = 2
 current = 0
 revision = 0
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
+versioned_libname = meson.project_name() + '-' + soversion.to_string()
 
 # Dependencies
-glib_dep = dependency('glib-2.0', version: '>= 2.50')
-gio_dep = dependency('gio-unix-2.0', version: '>= 2.44.0')
-gusb_dep = dependency('gusb', version: '>= 0.3.0')
+glib_dep = dependency('glib-2.0', version: '>=' + glib_min_version)
+gio_dep = dependency('gio-unix-2.0', version: '>=' + glib_min_version)
+gusb_dep = dependency('gusb', version: '>= 0.2.0')
 mathlib_dep = cc.find_library('m', required: false)
+
+# The following dependencies are only used for tests
+cairo_dep = dependency('cairo', required: false)
 
 # Drivers
 drivers = get_option('drivers').split(',')
 virtual_drivers = [ 'virtual_image' ]
-default_drivers = [ 'upektc_img', 'vfs5011', 'aes3500', 'aes4000', 'aes1610', 'aes1660', 'aes2660', 'aes2501', 'aes2550', 'vfs101', 'vfs301', 'vfs0050', 'etes603', 'vcom5s', 'synaptics', 'elan', 'uru4000', 'upektc', 'upeksonly', 'upekts' ]
+default_drivers = [
+    'upektc_img',
+    'vfs5011',
+    'aes3500',
+    'aes4000',
+    'aes1610',
+    'aes1660',
+    'aes2660',
+    'aes2501',
+    'aes2550',
+    'vfs101',
+    'vfs301',
+    'vfs0050',
+    'etes603',
+    'vcom5s',
+    'synaptics',
+    'elan',
+    'uru4000',
+    'upektc',
+    'upeksonly',
+    'upekts',
+]
 
 all_drivers = default_drivers + virtual_drivers
 
@@ -91,14 +149,26 @@ foreach driver: drivers
 endforeach
 
 # Export the drivers' types to the core code
-drivers_type_list = '#include <glib-object.h>\n'
-drivers_type_func = 'void fpi_get_driver_types(GArray *drivers)\n{\n\tGType t;\n'
+drivers_type_list = []
+drivers_type_func = []
+drivers_type_list += '#include <glib-object.h>'
+drivers_type_list += '#include "fpi-context.h"'
+drivers_type_list += ''
+drivers_type_func += 'GArray *'
+drivers_type_func += 'fpi_get_driver_types (void)'
+drivers_type_func += '{'
+drivers_type_func += '  GArray *drivers = g_array_new (TRUE, FALSE, sizeof (GType));'
+drivers_type_func += '  GType t;'
+drivers_type_func += ''
 foreach driver: drivers
-    drivers_type_list += 'extern GType (fpi_device_' + driver + '_get_type) (void);\n'
-    drivers_type_func += '	t = fpi_device_' + driver + '_get_type(); g_array_append_val (drivers, t);\n'
+    drivers_type_list += 'extern GType (fpi_device_' + driver + '_get_type) (void);'
+    drivers_type_func += '  t = fpi_device_' + driver + '_get_type ();'
+    drivers_type_func += '  g_array_append_val (drivers, t);'
+    drivers_type_func += ''
 endforeach
 drivers_type_list += ''
-drivers_type_func += '};'
+drivers_type_func += '  return drivers;'
+drivers_type_func += '}'
 
 root_inc = include_directories('.')
 
@@ -132,18 +202,14 @@ if get_option('gtk-examples')
     subdir('demo')
 endif
 
-# The tests require introspeciton support to run
-if get_option('introspection')
-    subdir('tests')
-endif
+subdir('tests')
 
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
-  name: 'libfprint',
-  description: 'Generic C API for fingerprint reader access',
-  version: meson.project_version(),
-  libraries: libfprint,
-  subdirs: 'libfprint',
-  filebase: 'libfprint2',
-  install_dir: join_paths(get_option('libdir'), 'pkgconfig'),
+    name: versioned_libname,
+    description: 'Generic C API for fingerprint reader access',
+    version: meson.project_version(),
+    libraries: libfprint,
+    subdirs: versioned_libname,
+    filebase: versioned_libname,
 )

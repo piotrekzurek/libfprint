@@ -47,6 +47,7 @@ struct _FpDeviceVirtualImage
   gint               socket_fd;
   gint               client_fd;
 
+  gboolean           automatic_finger;
   FpImage           *recv_img;
   gint               recv_img_hdr[2];
 };
@@ -66,31 +67,34 @@ recv_image_img_recv_cb (GObject      *source_object,
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualImage *self;
   FpImageDevice *device;
-  gssize bytes;
+  gboolean success;
+  gsize bytes = 0;
 
-  bytes = g_input_stream_read_finish (G_INPUT_STREAM (source_object), res, &error);
+  success = g_input_stream_read_all_finish (G_INPUT_STREAM (source_object), res, &bytes, &error);
 
-  if (bytes <= 0)
+  if (!success || bytes == 0)
     {
-      if (bytes < 0)
+      if (!success)
         {
-          g_warning ("Error receiving header for image data: %s", error->message);
           if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
             return;
+          g_warning ("Error receiving header for image data: %s", error->message);
         }
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
       g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-      self->connection = NULL;
+      g_clear_object (&self->connection);
       return;
     }
 
   self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
   device = FP_IMAGE_DEVICE (self);
 
-  fpi_image_device_report_finger_status (device, TRUE);
+  if (self->automatic_finger)
+    fpi_image_device_report_finger_status (device, TRUE);
   fpi_image_device_image_captured (device, g_steal_pointer (&self->recv_img));
-  fpi_image_device_report_finger_status (device, FALSE);
+  if (self->automatic_finger)
+    fpi_image_device_report_finger_status (device, FALSE);
 
   /* And, listen for more images from the same client. */
   recv_image (self, G_INPUT_STREAM (source_object));
@@ -103,22 +107,24 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 {
   g_autoptr(GError) error = NULL;
   FpDeviceVirtualImage *self;
-  gssize bytes;
+  gboolean success;
+  gsize bytes;
 
-  bytes = g_input_stream_read_finish (G_INPUT_STREAM (source_object), res, &error);
+  success = g_input_stream_read_all_finish (G_INPUT_STREAM (source_object), res, &bytes, &error);
 
-  if (bytes <= 0)
+  if (!success || bytes == 0)
     {
-      if (bytes < 0)
+      if (!success)
         {
-          g_warning ("Error receiving header for image data: %s", error->message);
-          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) ||
+              g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CLOSED))
             return;
+          g_warning ("Error receiving header for image data: %s", error->message);
         }
 
       self = FPI_DEVICE_VIRTUAL_IMAGE (user_data);
       g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-      self->connection = NULL;
+      g_clear_object (&self->connection);
       return;
     }
 
@@ -127,7 +133,7 @@ recv_image_hdr_recv_cb (GObject      *source_object,
     {
       g_warning ("Image header suggests an unrealistically large image, disconnecting client.");
       g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-      self->connection = NULL;
+      g_clear_object (&self->connection);
     }
 
   if (self->recv_img_hdr[0] < 0 || self->recv_img_hdr[1] < 0)
@@ -145,10 +151,21 @@ recv_image_hdr_recv_cb (GObject      *source_object,
                                           fpi_device_error_new (self->recv_img_hdr[1]));
           break;
 
+        case -3:
+          /* -3 sets/clears automatic finger detection for images */
+          self->automatic_finger = !!self->recv_img_hdr[1];
+          break;
+
+        case -4:
+          /* -4 submits a finger detection report */
+          fpi_image_device_report_finger_status (FP_IMAGE_DEVICE (self),
+                                                 !!self->recv_img_hdr[1]);
+          break;
+
         default:
           /* disconnect client, it didn't play fair */
           g_io_stream_close (G_IO_STREAM (self->connection), NULL, NULL);
-          self->connection = NULL;
+          g_clear_object (&self->connection);
         }
 
       /* And, listen for more images from the same client. */
@@ -158,25 +175,25 @@ recv_image_hdr_recv_cb (GObject      *source_object,
 
   self->recv_img = fp_image_new (self->recv_img_hdr[0], self->recv_img_hdr[1]);
   g_debug ("image data: %p", self->recv_img->data);
-  g_input_stream_read_async (G_INPUT_STREAM (source_object),
-                             (guint8 *) self->recv_img->data,
-                             self->recv_img->width * self->recv_img->height,
-                             G_PRIORITY_DEFAULT,
-                             self->cancellable,
-                             recv_image_img_recv_cb,
-                             self);
+  g_input_stream_read_all_async (G_INPUT_STREAM (source_object),
+                                 (guint8 *) self->recv_img->data,
+                                 self->recv_img->width * self->recv_img->height,
+                                 G_PRIORITY_DEFAULT,
+                                 self->cancellable,
+                                 recv_image_img_recv_cb,
+                                 self);
 }
 
 static void
 recv_image (FpDeviceVirtualImage *dev, GInputStream *stream)
 {
-  g_input_stream_read_async (stream,
-                             dev->recv_img_hdr,
-                             sizeof (dev->recv_img_hdr),
-                             G_PRIORITY_DEFAULT,
-                             dev->cancellable,
-                             recv_image_hdr_recv_cb,
-                             dev);
+  g_input_stream_read_all_async (stream,
+                                 dev->recv_img_hdr,
+                                 sizeof (dev->recv_img_hdr),
+                                 G_PRIORITY_DEFAULT,
+                                 dev->cancellable,
+                                 recv_image_hdr_recv_cb,
+                                 dev);
 }
 
 static void
@@ -206,10 +223,12 @@ new_connection_cb (GObject *source_object, GAsyncResult *res, gpointer user_data
   if (dev->connection)
     {
       g_io_stream_close (G_IO_STREAM (connection), NULL, NULL);
+      g_object_unref (connection);
       return;
     }
 
   dev->connection = connection;
+  dev->automatic_finger = TRUE;
   stream = g_io_stream_get_input_stream (G_IO_STREAM (connection));
 
   recv_image (dev, stream);

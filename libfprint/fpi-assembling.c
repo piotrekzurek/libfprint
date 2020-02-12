@@ -21,7 +21,8 @@
 
 #define FP_COMPONENT "assembling"
 
-#include "fp_internal.h"
+#include "fpi-log.h"
+#include "fpi-image.h"
 
 #include <string.h>
 
@@ -50,6 +51,9 @@ calc_error (struct fpi_frame_asmbl_ctx *ctx,
 
   width = ctx->frame_width - (dx > 0 ? dx : -dx);
   height = ctx->frame_height - dy;
+
+  if (height == 0 || width == 0)
+    return INT_MAX;
 
   y1 = 0;
   y2 = dy;
@@ -85,9 +89,6 @@ calc_error (struct fpi_frame_asmbl_ctx *ctx,
   err *= (ctx->frame_height * ctx->frame_width);
   err /= (height * width);
 
-  if (err == 0)
-    return INT_MAX;
-
   return err;
 }
 
@@ -98,6 +99,8 @@ static void
 find_overlap (struct fpi_frame_asmbl_ctx *ctx,
               struct fpi_frame           *first_frame,
               struct fpi_frame           *second_frame,
+              int                        *dx_out,
+              int                        *dy_out,
               unsigned int               *min_error)
 {
   int dx, dy;
@@ -119,8 +122,8 @@ find_overlap (struct fpi_frame_asmbl_ctx *ctx,
           if (err < *min_error)
             {
               *min_error = err;
-              second_frame->delta_x = -dx;
-              second_frame->delta_y = dy;
+              *dx_out = -dx;
+              *dy_out = dy;
             }
         }
     }
@@ -132,7 +135,7 @@ do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
 {
   GSList *l;
   GTimer *timer;
-  guint num_frames = 0;
+  guint num_frames = 1;
   struct fpi_frame *prev_stripe;
   unsigned int min_error;
   /* Max error is width * height * 255, for AES2501 which has the largest
@@ -142,20 +145,27 @@ do_movement_estimation (struct fpi_frame_asmbl_ctx *ctx,
   unsigned long long total_error = 0;
 
   timer = g_timer_new ();
+
+  /* Skip the first frame */
   prev_stripe = stripes->data;
-  for (l = stripes; l != NULL; l = l->next, num_frames++)
+
+  for (l = stripes->next; l != NULL; l = l->next, num_frames++)
     {
       struct fpi_frame *cur_stripe = l->data;
 
       if (reverse)
         {
-          find_overlap (ctx, prev_stripe, cur_stripe, &min_error);
+          find_overlap (ctx, prev_stripe, cur_stripe,
+                        &cur_stripe->delta_x, &cur_stripe->delta_y,
+                        &min_error);
           cur_stripe->delta_y = -cur_stripe->delta_y;
           cur_stripe->delta_x = -cur_stripe->delta_x;
         }
       else
         {
-          find_overlap (ctx, cur_stripe, prev_stripe, &min_error);
+          find_overlap (ctx, cur_stripe, prev_stripe,
+                        &cur_stripe->delta_x, &cur_stripe->delta_y,
+                        &min_error);
         }
       total_error += min_error;
 
@@ -327,19 +337,10 @@ fpi_assemble_frames (struct fpi_frame_asmbl_ctx *ctx,
     {
       fpi_frame = l->data;
 
-      if(reverse)
-        {
-          y += fpi_frame->delta_y;
-          x += fpi_frame->delta_x;
-        }
+      y += fpi_frame->delta_y;
+      x += fpi_frame->delta_x;
 
       aes_blit_stripe (ctx, img, fpi_frame, x, y);
-
-      if(!reverse)
-        {
-          y += fpi_frame->delta_y;
-          x += fpi_frame->delta_x;
-        }
     }
 
   return img;
@@ -385,8 +386,10 @@ median_filter (int *data, int size, int filtersize)
 
 static void
 interpolate_lines (struct fpi_line_asmbl_ctx *ctx,
-                   GSList *line1, float y1, GSList *line2,
-                   float y2, unsigned char *output, float yi, int size)
+                   GSList *line1, gint32 y1_f,
+                   GSList *line2, gint32 y2_f,
+                   unsigned char *output, gint32 yi_f,
+                   int size)
 {
   int i;
   unsigned char p1, p2;
@@ -396,10 +399,12 @@ interpolate_lines (struct fpi_line_asmbl_ctx *ctx,
 
   for (i = 0; i < size; i++)
     {
+      gint unscaled;
       p1 = ctx->get_pixel (ctx, line1, i);
       p2 = ctx->get_pixel (ctx, line2, i);
-      output[i] = (float) p1
-                  + (yi - y1) / (y2 - y1) * (p2 - p1);
+
+      unscaled = (yi_f - y1_f) * p2 + (y2_f - yi_f) * p1;
+      output[i] = (unscaled) / (y2_f - y1_f);
     }
 }
 
@@ -424,7 +429,13 @@ fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,
   /* Number of output lines per distance between two scanners */
   int i;
   GSList *row1, *row2;
-  float y = 0.0;
+  /* The y coordinate is tracked as a 16.16 fixed point number. All
+   * variables postfixed with _f follow this format here and in
+   * interpolate_lines.
+   * We could also use floating point here, but using fixed point means
+   * we get consistent results across architectures.
+   */
+  gint32 y_f = 0;
   int line_ind = 0;
   int *offsets = g_new0 (int, num_lines / 2);
   unsigned char *output = g_malloc0 (ctx->line_width * ctx->max_height);
@@ -476,21 +487,21 @@ fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,
       int offset = offsets[i / 2];
       if (offset > 0)
         {
-          float ynext = y + (float) ctx->resolution / offset;
-          while (line_ind < ynext)
+          gint32 ynext_f = y_f + (ctx->resolution << 16) / offset;
+          while ((line_ind << 16) < ynext_f)
             {
               if (line_ind > ctx->max_height - 1)
                 goto out;
               interpolate_lines (ctx,
-                                 row1, y,
+                                 row1, y_f,
                                  g_slist_next (row1),
-                                 ynext,
+                                 ynext_f,
                                  output + line_ind * ctx->line_width,
-                                 line_ind,
+                                 line_ind << 16,
                                  ctx->line_width);
               line_ind++;
             }
-          y = ynext;
+          y_f = ynext_f;
         }
     }
 out:

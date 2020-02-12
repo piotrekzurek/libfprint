@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __FPI_LOG_H__
-#define __FPI_LOG_H__
+#pragma once
 
 /**
  * SECTION:fpi-log
@@ -68,11 +67,11 @@
 /**
  * fp_err:
  *
- * Same as g_warning(). In the future, this might be changed to a
+ * Same as g_critical(). In the future, this might be changed to a
  * g_assert() instead, so bear this in mind when adding those calls
  * to your driver.
  */
-#define fp_err g_warning
+#define fp_err g_critical
 
 /**
  * BUG_ON:
@@ -94,5 +93,3 @@
  * Same as BUG_ON() but is always true.
  */
 #define BUG() BUG_ON (1)
-
-#endif

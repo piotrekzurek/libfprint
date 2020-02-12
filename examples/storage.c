@@ -19,7 +19,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define FP_COMPONENT "example-storage"
+
 #include <libfprint/fprint.h>
+#include <libfprint/fpi-compat.h>
+#include "storage.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -56,8 +60,8 @@ load_data (void)
 {
   GVariantDict *res;
   GVariant *var;
-  g_autofree gchar *contents = NULL;
-  gssize length = 0;
+  gchar *contents = NULL;
+  gsize length = 0;
 
   if (!g_file_get_contents (STORAGE_FILE, &contents, &length, NULL))
     {
@@ -65,7 +69,12 @@ load_data (void)
       return g_variant_dict_new (NULL);
     }
 
-  var = g_variant_new_from_data (G_VARIANT_TYPE_VARDICT, contents, length, FALSE, NULL, NULL);
+  var = g_variant_new_from_data (G_VARIANT_TYPE_VARDICT,
+                                 contents,
+                                 length,
+                                 FALSE,
+                                 g_free,
+                                 contents);
 
   res = g_variant_dict_new (var);
   g_variant_unref (var);
@@ -128,7 +137,7 @@ print_data_load (FpDevice *dev, FpFinger finger)
 
   g_autoptr(GVariant) val = NULL;
   g_autoptr(GVariantDict) dict = NULL;
-  g_autofree guchar *stored_data = NULL;
+  const guchar *stored_data = NULL;
   gsize stored_len;
 
   dict = load_data ();
@@ -139,7 +148,7 @@ print_data_load (FpDevice *dev, FpFinger finger)
       FpPrint *print;
       g_autoptr(GError) error = NULL;
 
-      stored_data = (guchar *) g_variant_get_fixed_array (val, &stored_len, 1);
+      stored_data = (const guchar *) g_variant_get_fixed_array (val, &stored_len, 1);
       print = fp_print_deserialize (stored_data, stored_len, &error);
 
       if (error)
@@ -155,8 +164,8 @@ FpPrint *
 print_create_template (FpDevice *dev, FpFinger finger)
 {
   g_autoptr(GDateTime) datetime = NULL;
+  g_autoptr(GDate) date = NULL;
   FpPrint *template = NULL;
-  GDate *date = NULL;
   gint year, month, day;
 
   template = fp_print_new (dev);
@@ -166,7 +175,6 @@ print_create_template (FpDevice *dev, FpFinger finger)
   g_date_time_get_ymd (datetime, &year, &month, &day);
   date = g_date_new_dmy (day, month, year);
   fp_print_set_enroll_date (template, date);
-  g_date_free (date);
 
   return template;
 }
@@ -212,7 +220,7 @@ save_image_to_pgm (FpImage *img, const char *path)
 gboolean
 print_image_save (FpPrint *print, const char *path)
 {
-  g_autoptr(FpImage) img = NULL;
+  FpImage *img = NULL;
 
   g_return_val_if_fail (FP_IS_PRINT (print), FALSE);
   g_return_val_if_fail (path != NULL, FALSE);

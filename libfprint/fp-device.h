@@ -113,8 +113,8 @@ GQuark fp_device_error_quark (void);
  * FpEnrollProgress:
  * @device: a #FpDevice
  * @completed_stages: Number of completed stages
- * @print: (nullable): The last scaned print
- * @user_data: (nullable): User provided data
+ * @print: (nullable) (transfer none): The last scaned print
+ * @user_data: (nullable) (transfer none): User provided data
  * @error: (nullable) (transfer none): #GError or %NULL
  *
  * The passed error is guaranteed to be of type %FP_DEVICE_RETRY if set.
@@ -125,10 +125,48 @@ typedef void (*FpEnrollProgress) (FpDevice *device,
                                   gpointer  user_data,
                                   GError   *error);
 
+/**
+ * FpMatchCb:
+ * @device: a #FpDevice
+ * @match: (nullable) (transfer none): The matching print if any matched @print
+ * @print: (nullable) (transfer none): The newly scanned print
+ * @user_data: (nullable) (transfer none): User provided data
+ * @error: (nullable) (transfer none): #GError or %NULL
+ *
+ * Report the result of a match (identify or verify) operation.
+ *
+ * If @match is non-%NULL, then it is set to the matching #FpPrint as passed
+ * to the match operation. In this case @error will always be %NULL.
+ *
+ * If @error is not %NULL then its domain is guaranteed to be
+ * %FP_DEVICE_RETRY. All other error conditions will not be reported using
+ * this callback. If such an error occurs before a match/no-match decision
+ * can be made, then this callback will not be called. Should an error
+ * happen afterwards, then you will get a match report through this callback
+ * and an error when the operation finishes.
+ *
+ * If @match and @error are %NULL, then a finger was presented but it did not
+ * match any known print.
+ *
+ * @print represents the newly scanned print. The driver may or may not
+ * provide this information. Image based devices will provide it and it
+ * allows access to the raw data.
+ *
+ * This callback exists because it makes sense for drivers to wait e.g. on
+ * finger removal before completing the match operation. However, the
+ * success/failure can often be reported at an earlier time, and there is
+ * no need to make the user wait.
+ */
+typedef void (*FpMatchCb) (FpDevice *device,
+                           FpPrint  *match,
+                           FpPrint  *print,
+                           gpointer  user_data,
+                           GError   *error);
 
 const gchar *fp_device_get_driver (FpDevice *device);
 const gchar *fp_device_get_device_id (FpDevice *device);
 const gchar *fp_device_get_name (FpDevice *device);
+gboolean     fp_device_is_open (FpDevice *device);
 FpScanType   fp_device_get_scan_type (FpDevice *device);
 gint         fp_device_get_nr_enroll_stages (FpDevice *device);
 
@@ -159,12 +197,18 @@ void fp_device_enroll (FpDevice           *device,
 void fp_device_verify (FpDevice           *device,
                        FpPrint            *enrolled_print,
                        GCancellable       *cancellable,
+                       FpMatchCb           match_cb,
+                       gpointer            match_data,
+                       GDestroyNotify      match_destroy,
                        GAsyncReadyCallback callback,
                        gpointer            user_data);
 
 void fp_device_identify (FpDevice           *device,
                          GPtrArray          *prints,
                          GCancellable       *cancellable,
+                         FpMatchCb           match_cb,
+                         gpointer            match_data,
+                         GDestroyNotify      match_destroy,
                          GAsyncReadyCallback callback,
                          gpointer            user_data);
 
@@ -230,12 +274,16 @@ FpPrint * fp_device_enroll_sync (FpDevice        *device,
 gboolean fp_device_verify_sync (FpDevice     *device,
                                 FpPrint      *enrolled_print,
                                 GCancellable *cancellable,
+                                FpMatchCb     match_cb,
+                                gpointer      match_data,
                                 gboolean     *match,
                                 FpPrint     **print,
                                 GError      **error);
 gboolean fp_device_identify_sync (FpDevice     *device,
                                   GPtrArray    *prints,
                                   GCancellable *cancellable,
+                                  FpMatchCb     match_cb,
+                                  gpointer      match_data,
                                   FpPrint     **match,
                                   FpPrint     **print,
                                   GError      **error);

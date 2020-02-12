@@ -18,12 +18,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "fpi-print.h"
-#include "fpi-image.h"
-#include "fpi-device.h"
+#define FP_COMPONENT "print"
 
-#include "nbis/include/bozorth.h"
-#include "nbis/include/lfs.h"
+#include "fp-print-private.h"
+#include "fpi-compat.h"
+#include "fpi-log.h"
 
 /**
  * SECTION: fp-print
@@ -41,28 +40,6 @@
  * Interaction with prints and their storage. See also the public
  * #FpPrint routines.
  */
-
-struct _FpPrint
-{
-  GInitiallyUnowned parent_instance;
-
-  FpPrintType       type;
-
-  gchar            *driver;
-  gchar            *device_id;
-  gboolean          device_stored;
-
-  FpImage          *image;
-
-  /* Metadata */
-  FpFinger   finger;
-  gchar     *username;
-  gchar     *description;
-  GDate     *enroll_date;
-
-  GVariant  *data;
-  GPtrArray *prints;
-};
 
 G_DEFINE_TYPE (FpPrint, fp_print, G_TYPE_INITIALLY_UNOWNED)
 
@@ -101,6 +78,7 @@ fp_print_finalize (GObject *object)
   g_clear_pointer (&self->description, g_free);
   g_clear_pointer (&self->enroll_date, g_date_free);
   g_clear_pointer (&self->data, g_variant_unref);
+  g_clear_pointer (&self->prints, g_ptr_array_unref);
 
   G_OBJECT_CLASS (fp_print_parent_class)->finalize (object);
 }
@@ -206,7 +184,7 @@ fp_print_set_property (GObject      *object,
       break;
 
     case PROP_FPI_DATA:
-      g_clear_pointer (&self->description, g_variant_unref);
+      g_clear_pointer (&self->data, g_variant_unref);
       self->data = g_value_dup_variant (value);
       break;
 
@@ -291,16 +269,30 @@ fp_print_class_init (FpPrintClass *klass)
                         G_TYPE_DATE,
                         G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE);
 
+  /**
+   * FpPrint::fpi-type: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_TYPE] =
-    g_param_spec_enum ("fp-type",
+    g_param_spec_enum ("fpi-type",
                        "Type",
                        "Private: The type of the print data",
-                       FP_TYPE_PRINT_TYPE,
-                       FP_PRINT_RAW,
+                       FPI_TYPE_PRINT_TYPE,
+                       FPI_PRINT_RAW,
                        G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
+  /**
+   * FpPrint::fpi-data: (skip)
+   *
+   * This property is only for internal purposes.
+   *
+   * Stability: private
+   */
   properties[PROP_FPI_DATA] =
-    g_param_spec_variant ("fp-data",
+    g_param_spec_variant ("fpi-data",
                           "Raw Data",
                           "The raw data for internal use only",
                           G_VARIANT_TYPE_ANY,
@@ -534,226 +526,9 @@ fp_print_set_enroll_date (FpPrint     *print,
 
   g_clear_pointer (&print->enroll_date, g_date_free);
   if (enroll_date)
-    {
-      /* XXX: Should use g_date_copy, but that is new in 2.56. */
-      print->enroll_date = g_date_new ();
-      *print->enroll_date = *enroll_date;
-    }
+    print->enroll_date = g_date_copy (enroll_date);
+
   g_object_notify_by_pspec (G_OBJECT (print), properties[PROP_ENROLL_DATE]);
-}
-
-
-
-/**
- * fpi_print_add_print:
- * @print: A #FpPrint
- * @add: Print to append to @print
- *
- * Appends the single #FP_PRINT_NBIS print from @add to the collection of
- * prints in @print. Both print objects need to be of type #FP_PRINT_NBIS
- * for this to work.
- */
-void
-fpi_print_add_print (FpPrint *print, FpPrint *add)
-{
-  g_return_if_fail (print->type == FP_PRINT_NBIS);
-  g_return_if_fail (add->type == FP_PRINT_NBIS);
-
-  g_assert (add->prints->len == 1);
-  g_ptr_array_add (print->prints, g_memdup (add->prints->pdata[0], sizeof (struct xyt_struct)));
-}
-
-/**
- * fpi_print_set_type:
- * @print: A #FpPrint
- * @type: The newly type of the print data
- *
- * This function can only be called exactly once. Drivers should
- * call it after creating a new print, or to initialize the template
- * print passed during enrollment.
- */
-void
-fpi_print_set_type (FpPrint    *print,
-                    FpPrintType type)
-{
-  g_return_if_fail (FP_IS_PRINT (print));
-  /* We only allow setting this once! */
-  g_return_if_fail (print->type == FP_PRINT_UNDEFINED);
-
-  print->type = type;
-  if (print->type == FP_PRINT_NBIS)
-    print->prints = g_ptr_array_new_with_free_func (g_free);
-  g_object_notify_by_pspec (G_OBJECT (print), properties[PROP_FPI_TYPE]);
-}
-
-/**
- * fpi_print_set_device_stored:
- * @print: A #FpPrint
- * @device_stored: Whether the print is stored on the device or not
- *
- * Drivers must set this to %TRUE for any print that is really a handle
- * for data that is stored on the device itself.
- */
-void
-fpi_print_set_device_stored (FpPrint *print,
-                             gboolean device_stored)
-{
-  g_return_if_fail (FP_IS_PRINT (print));
-
-  print->device_stored = device_stored;
-  g_object_notify_by_pspec (G_OBJECT (print), properties[PROP_DEVICE_STORED]);
-}
-
-/* XXX: This is the old version, but wouldn't it be smarter to instead
- * use the highest quality mintutiae? Possibly just using bz_prune from
- * upstream? */
-static void
-minutiae_to_xyt (struct fp_minutiae *minutiae,
-                 int                 bwidth,
-                 int                 bheight,
-                 struct xyt_struct  *xyt)
-{
-  int i;
-  struct fp_minutia *minutia;
-  struct minutiae_struct c[MAX_FILE_MINUTIAE];
-
-  /* struct xyt_struct uses arrays of MAX_BOZORTH_MINUTIAE (200) */
-  int nmin = min (minutiae->num, MAX_BOZORTH_MINUTIAE);
-
-  for (i = 0; i < nmin; i++)
-    {
-      minutia = minutiae->list[i];
-
-      lfs2nist_minutia_XYT (&c[i].col[0], &c[i].col[1], &c[i].col[2],
-                            minutia, bwidth, bheight);
-      c[i].col[3] = sround (minutia->reliability * 100.0);
-
-      if (c[i].col[2] > 180)
-        c[i].col[2] -= 360;
-    }
-
-  qsort ((void *) &c, (size_t) nmin, sizeof (struct minutiae_struct),
-         sort_x_y);
-
-  for (i = 0; i < nmin; i++)
-    {
-      xyt->xcol[i]     = c[i].col[0];
-      xyt->ycol[i]     = c[i].col[1];
-      xyt->thetacol[i] = c[i].col[2];
-    }
-  xyt->nrows = nmin;
-}
-
-/**
- * fpi_print_add_from_image:
- * @print: A #FpPrint
- * @image: A #FpImage
- * @error: Return location for error
- *
- * Extracts the minutiae from the given image and adds it to @print of
- * type #FP_PRINT_NBIS.
- *
- * The @image will be kept so that API users can get retrieve it e.g.
- * for debugging purposes.
- *
- * Returns: %TRUE on success
- */
-gboolean
-fpi_print_add_from_image (FpPrint *print,
-                          FpImage *image,
-                          GError **error)
-{
-  GPtrArray *minutiae;
-  struct fp_minutiae _minutiae;
-  struct xyt_struct *xyt;
-
-  if (print->type != FP_PRINT_NBIS || !image)
-    {
-      g_set_error (error,
-                   G_IO_ERROR,
-                   G_IO_ERROR_INVALID_DATA,
-                   "Cannot add print data from image!");
-      return FALSE;
-    }
-
-  minutiae = fp_image_get_minutiae (image);
-  if (!minutiae || minutiae->len == 0)
-    {
-      g_set_error (error,
-                   G_IO_ERROR,
-                   G_IO_ERROR_INVALID_DATA,
-                   "No minutiae found in image or not yet detected!");
-      return FALSE;
-    }
-
-  _minutiae.num = minutiae->len;
-  _minutiae.list = (struct fp_minutia **) minutiae->pdata;
-  _minutiae.alloc = minutiae->len;
-
-  xyt = g_new0 (struct xyt_struct, 1);
-  minutiae_to_xyt (&_minutiae, image->width, image->height, xyt);
-  g_ptr_array_add (print->prints, xyt);
-
-  g_clear_object (&print->image);
-  print->image = g_object_ref (image);
-  g_object_notify_by_pspec (G_OBJECT (print), properties[PROP_IMAGE]);
-
-  return TRUE;
-}
-
-/**
- * fpi_print_bz3_match:
- * @template: A #FpPrint containing one or more prints
- * @print: A newly scanned #FpPrint to test
- * @bz3_threshold: The BZ3 match threshold
- * @error: Return location for error
- *
- * Match the newly scanned @print (containing exactly one print) against the
- * prints contained in @template which will have been stored during enrollment.
- *
- * Both @template and @print need to be of type #FP_PRINT_NBIS for this to
- * work.
- *
- * Returns: Whether the prints match, @error will be set if #FPI_MATCH_ERROR is returned
- */
-FpiMatchResult
-fpi_print_bz3_match (FpPrint *template, FpPrint *print, gint bz3_threshold, GError **error)
-{
-  struct xyt_struct *pstruct;
-  gint probe_len;
-  gint i;
-
-  /* XXX: Use a different error type? */
-  if (template->type != FP_PRINT_NBIS || print->type != FP_PRINT_NBIS)
-    {
-      *error = fpi_device_error_new_msg (FP_DEVICE_ERROR_NOT_SUPPORTED,
-                                         "It is only possible to match NBIS type print data");
-      return FPI_MATCH_ERROR;
-    }
-
-  if (print->prints->len != 1)
-    {
-      *error = fpi_device_error_new_msg (FP_DEVICE_ERROR_GENERAL,
-                                         "New print contains more than one print!");
-      return FPI_MATCH_ERROR;
-    }
-
-  pstruct = g_ptr_array_index (print->prints, 0);
-  probe_len = bozorth_probe_init (pstruct);
-
-  for (i = 0; i < template->prints->len; i++)
-    {
-      struct xyt_struct *gstruct;
-      gint score;
-      gstruct = g_ptr_array_index (template->prints, i);
-      score = bozorth_to_gallery (probe_len, pstruct, gstruct);
-      fp_dbg ("score %d", score);
-
-      if (score >= bz3_threshold)
-        return FPI_MATCH_SUCCESS;
-    }
-
-  return FPI_MATCH_FAIL;
 }
 
 /**
@@ -795,8 +570,8 @@ fp_print_equal (FpPrint *self, FpPrint *other)
 {
   g_return_val_if_fail (FP_IS_PRINT (self), FALSE);
   g_return_val_if_fail (FP_IS_PRINT (other), FALSE);
-  g_return_val_if_fail (self->type != FP_PRINT_UNDEFINED, FALSE);
-  g_return_val_if_fail (other->type != FP_PRINT_UNDEFINED, FALSE);
+  g_return_val_if_fail (self->type != FPI_PRINT_UNDEFINED, FALSE);
+  g_return_val_if_fail (other->type != FPI_PRINT_UNDEFINED, FALSE);
 
   if (self->type != other->type)
     return FALSE;
@@ -807,11 +582,11 @@ fp_print_equal (FpPrint *self, FpPrint *other)
   if (g_strcmp0 (self->device_id, other->device_id))
     return FALSE;
 
-  if (self->type == FP_PRINT_RAW)
+  if (self->type == FPI_PRINT_RAW)
     {
       return g_variant_equal (self->data, other->data);
     }
-  else if (self->type == FP_PRINT_NBIS)
+  else if (self->type == FPI_PRINT_NBIS)
     {
       gint i;
 
@@ -835,7 +610,7 @@ fp_print_equal (FpPrint *self, FpPrint *other)
     }
 }
 
-#define FP_PRINT_VARIANT_TYPE G_VARIANT_TYPE ("(issbymsmsia{sv}v)")
+#define FPI_PRINT_VARIANT_TYPE G_VARIANT_TYPE ("(issbymsmsia{sv}v)")
 
 G_STATIC_ASSERT (sizeof (((struct xyt_struct *) NULL)->xcol[0]) == 4);
 
@@ -858,7 +633,7 @@ fp_print_serialize (FpPrint *print,
                     GError **error)
 {
   g_autoptr(GVariant) result = NULL;
-  GVariantBuilder builder = G_VARIANT_BUILDER_INIT (FP_PRINT_VARIANT_TYPE);
+  GVariantBuilder builder = G_VARIANT_BUILDER_INIT (FPI_PRINT_VARIANT_TYPE);
   gsize len;
 
   g_assert (data);
@@ -883,7 +658,7 @@ fp_print_serialize (FpPrint *print,
   g_variant_builder_close (&builder);
 
   /* Insert NBIS print data for type NBIS, otherwise the GVariant directly */
-  if (print->type == FP_PRINT_NBIS)
+  if (print->type == FPI_PRINT_NBIS)
     {
       GVariantBuilder nested = G_VARIANT_BUILDER_INIT (G_VARIANT_TYPE ("(a(aiaiai))"));
       gint i;
@@ -921,6 +696,7 @@ fp_print_serialize (FpPrint *print,
                                                                   xyt->nrows,
                                                                   sizeof (col[0])));
           g_variant_builder_close (&nested);
+          g_free (col);
         }
 
       g_variant_builder_close (&nested);
@@ -976,18 +752,18 @@ fp_print_deserialize (const guchar *data,
   g_autoptr(FpPrint) result = NULL;
   g_autoptr(GVariant) raw_value = NULL;
   g_autoptr(GVariant) value = NULL;
+  g_autoptr(GVariant) print_data = NULL;
+  g_autoptr(GDate) date = NULL;
   guchar *aligned_data = NULL;
-  GDate *date = NULL;
   guint8 finger_int8;
   FpFinger finger;
   g_autofree gchar *username = NULL;
   g_autofree gchar *description = NULL;
   gint julian_date;
-  FpPrintType type;
+  FpiPrintType type;
   const gchar *driver;
   const gchar *device_id;
   gboolean device_stored;
-  GVariant *print_data;
 
   g_assert (data);
   g_assert (length > 3);
@@ -1005,9 +781,9 @@ fp_print_deserialize (const guchar *data,
    * longer. */
   aligned_data = g_malloc (length - 3);
   memcpy (aligned_data, data + 3, length - 3);
-  raw_value = g_variant_new_from_data (FP_PRINT_VARIANT_TYPE,
+  raw_value = g_variant_new_from_data (FPI_PRINT_VARIANT_TYPE,
                                        aligned_data, length - 3,
-                                       FALSE, g_free, NULL);
+                                       FALSE, g_free, aligned_data);
 
   if (!raw_value)
     goto invalid_format;
@@ -1018,7 +794,7 @@ fp_print_deserialize (const guchar *data,
     value = g_variant_get_normal_form (raw_value);
 
   g_variant_get (value,
-                 "(issbymsmsi@a{sv}v)",
+                 "(i&s&sbymsmsi@a{sv}v)",
                  &type,
                  &driver,
                  &device_id,
@@ -1033,7 +809,7 @@ fp_print_deserialize (const guchar *data,
   finger = finger_int8;
 
   /* Assume data is valid at this point if the values are somewhat sane. */
-  if (type == FP_PRINT_NBIS)
+  if (type == FPI_PRINT_NBIS)
     {
       g_autoptr(GVariant) prints = g_variant_get_child_value (print_data, 0);
       gint i;
@@ -1043,10 +819,10 @@ fp_print_deserialize (const guchar *data,
                              "device-id", device_id,
                              "device-stored", device_stored,
                              NULL);
-      fpi_print_set_type (result, FP_PRINT_NBIS);
+      fpi_print_set_type (result, FPI_PRINT_NBIS);
       for (i = 0; i < g_variant_n_children (prints); i++)
         {
-          struct xyt_struct *xyt = g_new0 (struct xyt_struct, 1);
+          g_autofree struct xyt_struct *xyt = g_new0 (struct xyt_struct, 1);
           const gint32 *xcol, *ycol, *thetacol;
           gsize xlen, ylen, thetalen;
           g_autoptr(GVariant) xyt_data = NULL;
@@ -1077,19 +853,19 @@ fp_print_deserialize (const guchar *data,
           memcpy (xyt->ycol, ycol, sizeof (xcol[0]) * xlen);
           memcpy (xyt->thetacol, thetacol, sizeof (xcol[0]) * xlen);
 
-          g_ptr_array_add (result->prints, xyt);
+          g_ptr_array_add (result->prints, g_steal_pointer (&xyt));
         }
     }
-  else if (type == FP_PRINT_RAW)
+  else if (type == FPI_PRINT_RAW)
     {
       g_autoptr(GVariant) fp_data = g_variant_get_child_value (print_data, 0);
 
       result = g_object_new (FP_TYPE_PRINT,
-                             "fp-type", type,
+                             "fpi-type", type,
                              "driver", driver,
                              "device-id", device_id,
                              "device-stored", device_stored,
-                             "fp-data", fp_data,
+                             "fpi-data", fp_data,
                              NULL);
     }
   else
@@ -1105,8 +881,6 @@ fp_print_deserialize (const guchar *data,
                 "description", description,
                 "enroll_date", date,
                 NULL);
-
-  g_date_free (date);
 
   return g_steal_pointer (&result);
 
