@@ -79,7 +79,6 @@ usb_recv (FpDeviceVfs301 *dev, guint8 endpoint, int max_bytes, FpiUsbTransfer **
 
   fpi_usb_transfer_submit_sync (transfer, VFS301_DEFAULT_WAIT_TIMEOUT, &err);
 
-
 #ifdef DEBUG
   usb_print_packet (0, err, transfer->buffer, transfer->actual_length);
 #endif
@@ -471,7 +470,7 @@ int
 vfs301_proto_peek_event (FpDeviceVfs301 *dev)
 {
   g_autoptr(GError) error = NULL;
-  g_autoptr(FpiUsbTransfer) transfer = NULL;
+  FpiUsbTransfer *transfer;
 
   const char no_event[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   const char got_event[] = {0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00};
@@ -500,7 +499,7 @@ vfs301_proto_peek_event (FpDeviceVfs301 *dev)
     usb_recv (dev, e1, l1, NULL, &error); \
     usb_recv (dev, e2, l2, NULL, NULL); \
     if (g_error_matches (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_TIMED_OUT)) \
-    usb_recv(dev, e1, l1, NULL, NULL); \
+    usb_recv (dev, e1, l1, NULL, NULL); \
   }
 
 static void
@@ -540,7 +539,6 @@ vfs301_proto_process_event_cb (FpiUsbTransfer *transfer,
       fpi_usb_transfer_fill_bulk (new, VFS301_RECEIVE_ENDPOINT_DATA, VFS301_FP_RECV_LEN_2);
       fpi_usb_transfer_submit (new, VFS301_FP_RECV_TIMEOUT, NULL,
                                vfs301_proto_process_event_cb, NULL);
-      fpi_usb_transfer_unref (new);
       return;
     }
 }
@@ -580,7 +578,6 @@ vfs301_proto_process_event_start (FpDeviceVfs301 *dev)
   fpi_usb_transfer_fill_bulk (transfer, VFS301_RECEIVE_ENDPOINT_DATA, VFS301_FP_RECV_LEN_1);
   fpi_usb_transfer_submit (transfer, VFS301_FP_RECV_TIMEOUT, NULL,
                            vfs301_proto_process_event_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 int

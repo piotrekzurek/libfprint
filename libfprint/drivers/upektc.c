@@ -128,7 +128,6 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev)
         transfer->short_is_error = TRUE;
         fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                                  write_init_cb, NULL);
-        fpi_usb_transfer_unref (transfer);
       }
       break;
 
@@ -142,7 +141,6 @@ activate_run_state (FpiSsm *ssm, FpDevice *dev)
         transfer->ssm = ssm;
         fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                                  read_init_data_cb, NULL);
-        fpi_usb_transfer_unref (transfer);
       }
       break;
     }
@@ -157,7 +155,6 @@ activate_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
 
   if (!error)
     start_finger_detection (dev);
-  fpi_ssm_free (ssm);
 }
 
 
@@ -226,7 +223,6 @@ finger_det_cmd_cb (FpiUsbTransfer *t, FpDevice *device,
                               IMAGE_SIZE);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            finger_det_data_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -250,7 +246,6 @@ start_finger_detection (FpImageDevice *dev)
                                    UPEKTC_CMD_LEN, NULL);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            finger_det_cmd_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /****** CAPTURE ******/
@@ -260,16 +255,6 @@ enum capture_states {
   CAPTURE_READ_DATA,
   CAPTURE_NUM_STATES,
 };
-
-static void
-capture_cmd_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                gpointer user_data, GError *error)
-{
-  if (!error)
-    fpi_ssm_next_state (transfer->ssm);
-  else
-    fpi_ssm_mark_failed (transfer->ssm, error);
-}
 
 static void
 capture_read_data_cb (FpiUsbTransfer *transfer, FpDevice *device,
@@ -309,8 +294,7 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
         transfer->ssm = ssm;
         transfer->short_is_error = TRUE;
         fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
-                                 capture_cmd_cb, NULL);
-        fpi_usb_transfer_unref (transfer);
+                                 fpi_ssm_usb_transfer_cb, NULL);
       }
       break;
 
@@ -324,7 +308,6 @@ capture_run_state (FpiSsm *ssm, FpDevice *_dev)
         transfer->short_is_error = TRUE;
         fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                                  capture_read_data_cb, NULL);
-        fpi_usb_transfer_unref (transfer);
       }
       break;
     }
@@ -345,7 +328,6 @@ capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   else
     start_finger_detection (dev);
 
-  fpi_ssm_free (ssm);
 }
 
 static void

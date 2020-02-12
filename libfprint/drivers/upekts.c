@@ -226,7 +226,6 @@ busy_ack_retry_read (FpDevice *device, struct read_msg_data *udata)
   transfer->short_is_error = TRUE;
 
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, busy_ack_sent_cb, udata);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Returns 0 if message was handled, 1 if it was a device-busy message, and
@@ -288,7 +287,7 @@ __handle_incoming_msg (FpDevice             *device,
         {
           fp_warn ("cmd response too short (%d)", len);
           error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                            "CMD response too short");
+                                            "CMD response too short (%d)", len);
           goto err;
         }
       if (innerbuf[0] != 0x28)
@@ -371,11 +370,12 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fp_err ("async msg read too short (%d)",
               (gint) transfer->actual_length);
       error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                        "Packet from device was too short");
+                                        "Packet from device was too short (%lu)",
+                                        transfer->actual_length);
       goto err;
     }
 
-  if (strncmp (udata->buffer, "Ciao", 4) != 0)
+  if (strncmp ((char *) udata->buffer, "Ciao", 4) != 0)
     {
       fp_err ("no Ciao for you!!");
       error = fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
@@ -415,7 +415,6 @@ read_msg_cb (FpiUsbTransfer *transfer, FpDevice *device,
       fpi_usb_transfer_submit (etransfer, TIMEOUT,
                                NULL,
                                read_msg_extend_cb, udata);
-      fpi_usb_transfer_unref (etransfer);
       return;
     }
 
@@ -441,7 +440,6 @@ __read_msg_async (FpDevice *device, struct read_msg_data *udata)
 
   fpi_usb_transfer_fill_bulk_full (transfer, EP_IN, udata->buffer, udata->buflen, NULL);
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, read_msg_cb, udata);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -675,7 +673,6 @@ initsm_send_msg28_handler (FpiSsm              *ssm,
   transfer->ssm = ssm;
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -696,7 +693,6 @@ initsm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->ssm = ssm;
       transfer->short_is_error = TRUE;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_MSG03:
@@ -708,7 +704,6 @@ initsm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->ssm = ssm;
       transfer->short_is_error = TRUE;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_MSG05:
@@ -798,7 +793,8 @@ read_msg01_cb (FpDevice *dev, enum read_msg_type type,
     {
       fp_err ("expected seq=1, got %x", seq);
       fpi_ssm_mark_failed (ssm, fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
-                                                          "Got wrong sequence number"));
+                                                          "Got wrong sequence number (%x)",
+                                                          seq));
       return;
     }
 
@@ -818,7 +814,6 @@ deinitsm_state_handler (FpiSsm *ssm, FpDevice *dev)
       transfer->short_is_error = TRUE;
       transfer->ssm = ssm;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_MSG01:;
@@ -907,8 +902,10 @@ enroll_start_sm_cb_msg28 (FpDevice *dev,
   FpiSsm *ssm = user_data;
 
   if (error)
-    fpi_ssm_mark_failed (ssm, error);
-  if (type != READ_MSG_RESPONSE)
+    {
+      fpi_ssm_mark_failed (ssm, error);
+    }
+  else if (type != READ_MSG_RESPONSE)
     {
       fp_err ("expected response, got %d seq=%x", type, seq);
       fpi_ssm_mark_failed (ssm, fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
@@ -951,7 +948,6 @@ enroll_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->ssm = ssm;
 
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
       break;
 
     case READ_ENROLL_MSG28:;
@@ -988,7 +984,6 @@ enroll_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
     fp_warn ("Error deinitializing: %s", error->message);
 
   fpi_device_enroll_complete (dev, data->print, data->error);
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -1133,7 +1128,7 @@ e_handle_resp02 (FpDevice *dev, unsigned char *data,
                                            data_len - sizeof (scan_comp),
                                            1);
 
-      g_object_set (print, "fp-data", fp_data, NULL);
+      g_object_set (print, "fpi-data", fp_data, NULL);
       g_object_ref (print);
     }
 
@@ -1204,7 +1199,6 @@ enroll_iterate (FpDevice *dev)
   transfer->short_is_error = TRUE;
 
   fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, enroll_iterate_cmd_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -1215,7 +1209,6 @@ enroll_started (FpiSsm *ssm, FpDevice *dev, GError *error)
   else
     enroll_iterate (dev);
 
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -1234,8 +1227,7 @@ enroll (FpDevice *dev)
 
 typedef struct
 {
-  FpiMatchResult res;
-  GError        *error;
+  GError *error;
 } VerifyStopData;
 
 static void
@@ -1253,8 +1245,12 @@ verify_stop_deinit_cb (FpiSsm *ssm, FpDevice *dev, GError *error)
   if (error)
     fp_warn ("Error deinitializing: %s", error->message);
 
-  fpi_device_verify_complete (dev, data->res, NULL, data->error);
-  fpi_ssm_free (ssm);
+  if (data->error)
+    fpi_device_verify_complete (dev, data->error);
+  else
+    fpi_device_verify_complete (dev, g_steal_pointer (&error));
+
+  g_error_free (error);
 }
 
 static void
@@ -1263,8 +1259,11 @@ do_verify_stop (FpDevice *dev, FpiMatchResult res, GError *error)
   VerifyStopData *data = g_new0 (VerifyStopData, 1);
   FpiSsm *ssm = deinitsm_new (dev, data);
 
-  data->res = res;
-  data->error = error;
+  /* Report the error immediately if possible, otherwise delay it. */
+  if (!error && error->domain != FP_DEVICE_RETRY)
+    fpi_device_verify_report (dev, res, NULL, error);
+  else
+    data->error = error;
 
   fpi_ssm_start (ssm, verify_stop_deinit_cb);
   fpi_ssm_set_data (ssm, data, (GDestroyNotify) verify_stop_data_free);
@@ -1303,7 +1302,7 @@ verify_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
 
     case VERIFY_INIT:
       fpi_device_get_verify_data (dev, &print);
-      g_object_get (dev, "fp-data", &fp_data, NULL);
+      g_object_get (dev, "fpi-data", &fp_data, NULL);
 
       data = g_variant_get_fixed_array (fp_data, &data_len, 1);
 
@@ -1320,7 +1319,6 @@ verify_start_sm_run_state (FpiSsm *ssm, FpDevice *dev)
       transfer->short_is_error = TRUE;
       transfer->ssm = ssm;
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, fpi_ssm_usb_transfer_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
 
       break;
     }
@@ -1520,7 +1518,6 @@ verify_iterate (FpDevice *dev)
       transfer->short_is_error = TRUE;
 
       fpi_usb_transfer_submit (transfer, TIMEOUT, NULL, verify_wr2800_cb, NULL);
-      fpi_usb_transfer_unref (transfer);
     }
 }
 
@@ -1538,7 +1535,6 @@ verify_started (FpiSsm *ssm, FpDevice *dev, GError *error)
   upekdev->first_verify_iteration = TRUE;
   verify_iterate (dev);
 
-  fpi_ssm_free (ssm);
 }
 
 static void

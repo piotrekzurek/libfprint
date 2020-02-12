@@ -96,29 +96,20 @@ print_driver (const FpDeviceClass *cls)
 int
 main (int argc, char **argv)
 {
-  g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof (GType));
+  g_autoptr(GArray) drivers = fpi_get_driver_types ();
   guint i;
-
-  g_print ("%p\n", drivers);
-  g_print ("%p\n", fpi_get_driver_types);
-  fpi_get_driver_types (drivers);
 
   printed = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
   for (i = 0; i < drivers->len; i++)
     {
       GType driver = g_array_index (drivers, GType, i);
-      FpDeviceClass *cls = FP_DEVICE_CLASS (g_type_class_ref (driver));
+      g_autoptr(FpDeviceClass) cls = g_type_class_ref (driver);
 
       if (cls->type != FP_DEVICE_TYPE_USB)
-        {
-          g_type_class_unref (cls);
-          continue;
-        }
+        continue;
 
       print_driver (cls);
-
-      g_type_class_unref (cls);
     }
 
   print_driver (&whitelist);

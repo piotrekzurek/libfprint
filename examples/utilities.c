@@ -18,6 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define FP_COMPONENT "example-utilities"
+
 #include <libfprint/fprint.h>
 #include <stdio.h>
 
@@ -107,29 +109,19 @@ finger_to_string (FpFinger finger)
 FpFinger
 finger_chooser (void)
 {
-  int i;
-  const FpFinger all_fingers[] = {
-    FP_FINGER_LEFT_THUMB,
-    FP_FINGER_LEFT_INDEX,
-    FP_FINGER_LEFT_MIDDLE,
-    FP_FINGER_LEFT_RING,
-    FP_FINGER_LEFT_LITTLE,
-    FP_FINGER_RIGHT_THUMB,
-    FP_FINGER_RIGHT_INDEX,
-    FP_FINGER_RIGHT_MIDDLE,
-    FP_FINGER_RIGHT_RING,
-    FP_FINGER_RIGHT_LITTLE,
-  };
+  int i = FP_FINGER_UNKNOWN;
 
-  for (i = all_fingers[0]; i <= G_N_ELEMENTS (all_fingers); ++i)
-    g_print ("  [%d] %s\n", (i - all_fingers[0]), finger_to_string (i));
+  for (i = FP_FINGER_FIRST; i <= FP_FINGER_LAST; ++i)
+    g_print ("  [%d] %s\n", (i - FP_FINGER_FIRST), finger_to_string (i));
 
   g_print ("> ");
   if (!scanf ("%d%*c", &i))
     return FP_FINGER_UNKNOWN;
 
-  if (i < 0 || i >= G_N_ELEMENTS (all_fingers))
+  i += FP_FINGER_FIRST;
+
+  if (i < FP_FINGER_FIRST || i > FP_FINGER_LAST)
     return FP_FINGER_UNKNOWN;
 
-  return all_fingers[i];
+  return i;
 }

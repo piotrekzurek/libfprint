@@ -77,16 +77,6 @@ enum v5s_cmd {
 /***** REGISTER I/O *****/
 
 static void
-sm_write_reg_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                 gpointer user_data, GError *error)
-{
-  if (error)
-    fpi_ssm_mark_failed (transfer->ssm, error);
-  else
-    fpi_ssm_next_state (transfer->ssm);
-}
-
-static void
 sm_write_reg (FpiSsm       *ssm,
               FpDevice     *dev,
               unsigned char reg,
@@ -101,19 +91,8 @@ sm_write_reg (FpiSsm       *ssm,
                                  G_USB_DEVICE_RECIPIENT_DEVICE,
                                  reg, value, 0, 0);
   transfer->ssm = ssm;
-  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, sm_write_reg_cb,
-                           NULL);
-  fpi_usb_transfer_unref (transfer);
-}
-
-static void
-sm_exec_cmd_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                gpointer user_data, GError *error)
-{
-  if (error)
-    fpi_ssm_mark_failed (transfer->ssm, error);
-  else
-    fpi_ssm_next_state (transfer->ssm);
+  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL,
+                           fpi_ssm_usb_transfer_cb, NULL);
 }
 
 static void
@@ -131,9 +110,8 @@ sm_exec_cmd (FpiSsm       *ssm,
                                  G_USB_DEVICE_RECIPIENT_DEVICE,
                                  cmd, param, 0, 0);
   transfer->ssm = ssm;
-  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, sm_exec_cmd_cb,
-                           NULL);
-  fpi_usb_transfer_unref (transfer);
+  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL,
+                           fpi_ssm_usb_transfer_cb, NULL);
 }
 
 /***** FINGER DETECTION *****/
@@ -227,7 +205,6 @@ capture_iterate (FpiSsm   *ssm,
                                    NULL);
 
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, capture_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 
@@ -301,7 +278,6 @@ loopsm_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
   FpImageDevice *imgdev = FP_IMAGE_DEVICE (dev);
   FpDeviceVcom5s *self = FPI_DEVICE_VCOM5S (dev);
 
-  fpi_ssm_free (ssm);
   g_object_unref (self->capture_img);
   self->capture_img = NULL;
   self->loop_running = FALSE;

@@ -26,6 +26,7 @@ FpDeviceError
 fp_device_retry_quark
 fp_device_error_quark
 FpEnrollProgress
+FpMatchCb
 fp_device_get_driver
 fp_device_get_device_id
 fp_device_get_name
@@ -129,7 +130,7 @@ fpi_get_driver_types
 <FILE>fpi-device</FILE>
 FpDeviceClass
 FpTimeoutFunc
-FpDeviceAction
+FpiDeviceAction
 FpIdEntry
 fpi_device_get_usb_device
 fpi_device_get_virtual_env
@@ -159,6 +160,8 @@ fpi_device_identify_complete
 fpi_device_capture_complete
 fpi_device_delete_complete
 fpi_device_enroll_progress
+fpi_device_verify_report
+fpi_device_identify_report
 </SECTION>
 
 <SECTION>
@@ -173,7 +176,7 @@ fpi_image_resize
 <SECTION>
 <FILE>fpi-image-device</FILE>
 <TITLE>FpImageDevice</TITLE>
-FpImageDeviceState
+FpiImageDeviceState
 FpImageDeviceClass
 fpi_image_device_session_error
 fpi_image_device_open_complete
@@ -197,7 +200,7 @@ BUG
 
 <SECTION>
 <FILE>fpi-print</FILE>
-FpPrintType
+FpiPrintType
 FpiMatchResult
 fpi_print_add_print
 fpi_print_set_type
@@ -211,11 +214,15 @@ fpi_print_bz3_match
 FpiSsmCompletedCallback
 FpiSsmHandlerCallback
 fpi_ssm_new
+fpi_ssm_new_full
 fpi_ssm_free
 fpi_ssm_start
 fpi_ssm_start_subsm
 fpi_ssm_next_state
+fpi_ssm_next_state_delayed
 fpi_ssm_jump_to_state
+fpi_ssm_jump_to_state_delayed
+fpi_ssm_cancel_delayed_state_change
 fpi_ssm_mark_completed
 fpi_ssm_mark_failed
 fpi_ssm_set_data

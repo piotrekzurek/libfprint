@@ -635,7 +635,6 @@ write_regs_iterate (struct write_regs_data *wrdata)
   transfer->short_is_error = TRUE;
   transfer->ssm = wrdata->ssm;
   fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, write_regs_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 
   transfer->buffer[0] = regwrite->value;
 }
@@ -658,17 +657,6 @@ sm_write_regs (FpiSsm                      *ssm,
 }
 
 static void
-sm_write_reg_cb (FpiUsbTransfer *transfer, FpDevice *device,
-                 gpointer user_data, GError *error)
-{
-  if (error)
-    fpi_ssm_mark_failed (transfer->ssm, error);
-  else
-    fpi_ssm_next_state (transfer->ssm);
-
-}
-
-static void
 sm_write_reg (FpiSsm        *ssm,
               FpImageDevice *dev,
               guint8         reg,
@@ -687,8 +675,8 @@ sm_write_reg (FpiSsm        *ssm,
                                  1);
   transfer->short_is_error = TRUE;
   transfer->ssm = ssm;
-  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL, sm_write_reg_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
+  fpi_usb_transfer_submit (transfer, CTRL_TIMEOUT, NULL,
+                           fpi_ssm_usb_transfer_cb, NULL);
 
   transfer->buffer[0] = value;
 }
@@ -737,7 +725,6 @@ sm_read_reg (FpiSsm        *ssm,
                            NULL,
                            sm_read_reg_cb,
                            NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -782,7 +769,6 @@ sm_await_intr (FpiSsm        *ssm,
                            fpi_device_get_cancellable (FP_DEVICE (dev)),
                            sm_await_intr_cb,
                            NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /***** AWAIT FINGER *****/
@@ -1249,6 +1235,9 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev)
                                        awfsm_1000_run_state,
                                        AWFSM_1000_NUM_STATES);
                   break;
+
+                default:
+                  g_assert_not_reached ();
                 }
               fpi_ssm_start_subsm (ssm, awfsm);
             }
@@ -1290,6 +1279,9 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev)
                                capsm_1001_run_state,
                                CAPSM_1001_NUM_STATES);
           break;
+
+        default:
+          g_assert_not_reached ();
         }
       fpi_ssm_start_subsm (ssm, capsm);
       break;
@@ -1318,6 +1310,9 @@ loopsm_run_state (FpiSsm *ssm, FpDevice *_dev)
                                   deinitsm_1001_run_state,
                                   DEINITSM_1001_NUM_STATES);
           break;
+
+        default:
+          g_assert_not_reached ();
         }
       self->capturing = FALSE;
       fpi_ssm_start_subsm (ssm, deinitsm);
@@ -1371,7 +1366,6 @@ loopsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
-  fpi_ssm_free (ssm);
 
   if (self->deactivating)
     {
@@ -1392,7 +1386,6 @@ initsm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
   FpImageDevice *dev = FP_IMAGE_DEVICE (_dev);
   FpiDeviceUpeksonly *self = FPI_DEVICE_UPEKSONLY (_dev);
 
-  fpi_ssm_free (ssm);
   fpi_image_device_activate_complete (dev, error);
   if (error)
     return;
@@ -1412,7 +1405,6 @@ dev_activate (FpImageDevice *dev)
   self->deactivating = FALSE;
   self->capturing = FALSE;
 
-  self->img_transfers = g_ptr_array_new_full (NUM_BULK_TRANSFERS, (GDestroyNotify) fpi_usb_transfer_unref);
   self->num_flying = 0;
 
   for (i = 0; i < self->img_transfers->len; i++)
@@ -1441,6 +1433,9 @@ dev_activate (FpImageDevice *dev)
       ssm = fpi_ssm_new (FP_DEVICE (dev), initsm_1001_run_state,
                          INITSM_1001_NUM_STATES);
       break;
+
+    default:
+      g_assert_not_reached ();
     }
   fpi_ssm_start (ssm, initsm_complete);
 }

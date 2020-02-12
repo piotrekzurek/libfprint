@@ -31,23 +31,18 @@ GHashTable *printed = NULL;
 static GList *
 insert_drivers (GList *list)
 {
-  g_autoptr(GArray) drivers = g_array_new (FALSE, FALSE, sizeof (GType));
+  g_autoptr(GArray) drivers = fpi_get_driver_types ();
   gint i;
-
-  fpi_get_driver_types (drivers);
 
   /* Find the best driver to handle this USB device. */
   for (i = 0; i < drivers->len; i++)
     {
       GType driver = g_array_index (drivers, GType, i);
-      FpDeviceClass *cls = FP_DEVICE_CLASS (g_type_class_ref (driver));
+      g_autoptr(FpDeviceClass) cls = g_type_class_ref (driver);
       const FpIdEntry *entry;
 
       if (cls->type != FP_DEVICE_TYPE_USB)
-        {
-          g_type_class_unref (cls);
-          continue;
-        }
+        continue;
 
       for (entry = cls->id_table; entry->vid; entry++)
         {
@@ -65,8 +60,6 @@ insert_drivers (GList *list)
 
           list = g_list_prepend (list, g_strdup_printf ("%s | %s\n", key, cls->full_name));
         }
-
-      g_type_class_unref (cls);
     }
 
   return list;

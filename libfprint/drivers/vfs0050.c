@@ -56,7 +56,6 @@ async_write (FpiSsm   *ssm,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
                            async_write_callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Callback for async_read */
@@ -108,7 +107,6 @@ async_read (FpiSsm   *ssm,
 
   fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
                            async_read_callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Callback for async_abort */
@@ -160,7 +158,6 @@ async_abort (FpDevice *dev, FpiSsm *ssm, int ep)
 
   fpi_usb_transfer_submit (transfer, VFS_USB_ABORT_TIMEOUT, NULL,
                            async_abort_callback, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 /* Image processing functions */
@@ -402,7 +399,7 @@ interrupt_callback (FpiUsbTransfer *transfer, FpDevice *device,
                     gpointer user_data, GError *error)
 {
   FpDeviceVfs0050 *self = FPI_DEVICE_VFS0050 (device);
-  char *interrupt = transfer->buffer;
+  unsigned char *interrupt = transfer->buffer;
 
   /* we expect a cancellation error when the device is deactivating
    * go into the SSM_CLEAR_EP2 state in that case. */
@@ -482,16 +479,6 @@ receive_callback (FpiUsbTransfer *transfer, FpDevice *device,
     }
 }
 
-/* SSM stub to prepare device to another scan after orange light was on */
-static void
-another_scan (FpDevice *dev,
-              void     *data)
-{
-  FpiSsm *ssm = data;
-
-  fpi_ssm_jump_to_state (ssm, SSM_TURN_ON);
-}
-
 /* Main SSM loop */
 static void
 activate_ssm (FpiSsm *ssm, FpDevice *dev)
@@ -564,7 +551,6 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
                                  0,
                                  fpi_device_get_cancellable (dev),
                                  interrupt_callback, NULL);
-        fpi_usb_transfer_unref (transfer);
 
         /* I've put it here to be sure that data is cleared */
         clear_data (self);
@@ -609,12 +595,12 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
         /* Receive chunk of data */
         transfer = fpi_usb_transfer_new (dev);
         fpi_usb_transfer_fill_bulk_full (transfer, 0x82,
-                                         (void *) self->lines_buffer + self->bytes,
+                                         (guint8 *)
+                                         (self->lines_buffer + self->bytes),
                                          VFS_USB_BUFFER_SIZE, NULL);
         transfer->ssm = ssm;
         fpi_usb_transfer_submit (transfer, VFS_USB_TIMEOUT, NULL,
                                  receive_callback, NULL);
-        fpi_usb_transfer_unref (transfer);
         break;
       }
 
@@ -623,8 +609,7 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
       clear_data (self);
 
       /* Wait for probable vdev->active changing */
-      fpi_device_add_timeout (dev, VFS_SSM_TIMEOUT,
-                              fpi_ssm_next_state_timeout_cb, ssm);
+      fpi_ssm_next_state_delayed (ssm, VFS_SSM_TIMEOUT, NULL);
       break;
 
     case SSM_NEXT_RECEIVE:
@@ -643,8 +628,8 @@ activate_ssm (FpiSsm *ssm, FpDevice *dev)
 
     case SSM_WAIT_ANOTHER_SCAN:
       /* Orange light is on now */
-      fpi_device_add_timeout (dev, VFS_SSM_ORANGE_TIMEOUT,
-                              another_scan, ssm);
+      fpi_ssm_jump_to_state_delayed (ssm, SSM_TURN_ON, VFS_SSM_ORANGE_TIMEOUT,
+                                     NULL);
       break;
 
     default:
@@ -669,7 +654,6 @@ dev_activate_callback (FpiSsm *ssm, FpDevice *dev, GError *error)
       g_error_free (error);
     }
 
-  fpi_ssm_free (ssm);
 }
 
 /* Activate device */
@@ -710,7 +694,6 @@ dev_open_callback (FpiSsm *ssm, FpDevice *dev, GError *error)
 {
   /* Notify open complete */
   fpi_image_device_open_complete (FP_IMAGE_DEVICE (dev), error);
-  fpi_ssm_free (ssm);
 }
 
 /* Open device */

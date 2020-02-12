@@ -298,7 +298,7 @@ fpi_usb_transfer_fill_interrupt_full (FpiUsbTransfer *transfer,
   transfer->free_buffer = free_func;
 }
 
-void
+static void
 transfer_finish_cb (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
@@ -356,7 +356,7 @@ transfer_finish_cb (GObject *source_object, GAsyncResult *res, gpointer user_dat
 
 /**
  * fpi_usb_transfer_submit:
- * @transfer: The transfer to submit, must have been filled.
+ * @transfer: (transfer full): The transfer to submit, must have been filled.
  * @timeout_ms: Timeout for the transfer in ms
  * @cancellable: Cancellable to use, e.g. fpi_device_get_cancellable()
  * @callback: Callback on completion or error
@@ -364,10 +364,9 @@ transfer_finish_cb (GObject *source_object, GAsyncResult *res, gpointer user_dat
  *
  * Submit a USB transfer with a specific timeout and callback functions.
  *
- * Note that #FpiUsbTransfer is owned by the user. In most cases, you
- * should call fpi_usb_transfer_unref() just after calling this function.
- * Doing so means that all associated data will be free'ed automatically
- * after the callback ran.
+ * Note that #FpiUsbTransfer will be stolen when this function is called.
+ * So that all associated data will be free'ed automatically, after the
+ * callback ran unless fpi_usb_transfer_ref() is explictly called.
  */
 void
 fpi_usb_transfer_submit (FpiUsbTransfer        *transfer,
@@ -384,11 +383,6 @@ fpi_usb_transfer_submit (FpiUsbTransfer        *transfer,
 
   transfer->callback = callback;
   transfer->user_data = user_data;
-
-  /* Grab a reference, this means that one can simply unref after submit and
-   * trust for the data to disappear without explicit management by the callback
-   * function. */
-  fpi_usb_transfer_ref (transfer);
 
   log_transfer (transfer, TRUE, NULL);
 
@@ -460,6 +454,7 @@ fpi_usb_transfer_submit_sync (FpiUsbTransfer *transfer,
                               GError        **error)
 {
   gboolean res;
+  gsize actual_length;
 
   g_return_val_if_fail (transfer, FALSE);
 
@@ -475,7 +470,7 @@ fpi_usb_transfer_submit_sync (FpiUsbTransfer *transfer,
                                         transfer->endpoint,
                                         transfer->buffer,
                                         transfer->length,
-                                        &transfer->actual_length,
+                                        &actual_length,
                                         timeout_ms,
                                         NULL,
                                         error);
@@ -491,7 +486,7 @@ fpi_usb_transfer_submit_sync (FpiUsbTransfer *transfer,
                                            transfer->idx,
                                            transfer->buffer,
                                            transfer->length,
-                                           &transfer->actual_length,
+                                           &actual_length,
                                            timeout_ms,
                                            NULL,
                                            error);
@@ -502,7 +497,7 @@ fpi_usb_transfer_submit_sync (FpiUsbTransfer *transfer,
                                              transfer->endpoint,
                                              transfer->buffer,
                                              transfer->length,
-                                             &transfer->actual_length,
+                                             &actual_length,
                                              timeout_ms,
                                              NULL,
                                              error);
@@ -517,6 +512,8 @@ fpi_usb_transfer_submit_sync (FpiUsbTransfer *transfer,
 
   if (!res)
     transfer->actual_length = -1;
+  else
+    transfer->actual_length = actual_length;
 
   return res;
 }

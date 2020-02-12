@@ -126,7 +126,6 @@ read_regs_rq_cb (FpImageDevice *dev, GError *error, void *user_data)
   fpi_usb_transfer_fill_bulk (transfer, EP_IN, READ_REGS_LEN);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            read_regs_data_cb, rdata);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -183,19 +182,6 @@ generic_write_regv_cb (FpImageDevice *dev, GError *error,
     fpi_ssm_mark_failed (ssm, error);
 }
 
-/* check that read succeeded but ignore all data */
-static void
-generic_ignore_data_cb (FpiUsbTransfer *transfer, FpDevice *dev,
-                        gpointer user_data, GError *error)
-{
-  FpiSsm *ssm = transfer->ssm;
-
-  if (error)
-    fpi_ssm_mark_failed (ssm, error);
-  else
-    fpi_ssm_next_state (ssm);
-}
-
 /* read the specified number of bytes from the IN endpoint but throw them
  * away, then increment the SSM */
 static void
@@ -209,8 +195,7 @@ generic_read_ignore_data (FpiSsm *ssm, FpDevice *dev,
   transfer->short_is_error = TRUE;
   fpi_usb_transfer_fill_bulk (transfer, EP_IN, bytes);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
-                           generic_ignore_data_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
+                           fpi_ssm_usb_transfer_cb, NULL);
 }
 
 /****** IMAGE PROCESSING ******/
@@ -315,7 +300,6 @@ finger_det_reqs_cb (FpImageDevice *dev, GError *error,
   fpi_usb_transfer_fill_bulk (transfer, EP_IN, FINGER_DETECTION_LEN);
   fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                            finger_det_data_cb, NULL);
-  fpi_usb_transfer_unref (transfer);
 }
 
 static void
@@ -547,7 +531,6 @@ capture_run_state (FpiSsm *ssm, FpDevice *device)
         fpi_usb_transfer_fill_bulk (transfer, EP_IN, STRIP_CAPTURE_LEN);
         fpi_usb_transfer_submit (transfer, BULK_TIMEOUT, NULL,
                                  capture_read_strip_cb, NULL);
-        fpi_usb_transfer_unref (transfer);
         break;
       }
     }
@@ -575,7 +558,6 @@ capture_sm_complete (FpiSsm *ssm, FpDevice *_dev, GError *error)
     {
       start_finger_detection (dev);
     }
-  fpi_ssm_free (ssm);
 }
 
 static void
@@ -704,7 +686,7 @@ enum activate_states {
   ACTIVATE_NUM_STATES,
 };
 
-void
+static void
 activate_read_regs_cb (FpImageDevice *dev, GError *error,
                        unsigned char *regs, void *user_data)
 {
@@ -806,7 +788,6 @@ activate_sm_complete (FpiSsm *ssm, FpDevice *dev, GError *error)
 
   if (!error)
     start_finger_detection (FP_IMAGE_DEVICE (dev));
-  fpi_ssm_free (ssm);
 }
 
 static void
