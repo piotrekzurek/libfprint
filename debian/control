@@ -21,7 +21,7 @@ Homepage: https://www.freedesktop.org/wiki/Software/fprint/libfprint
 Vcs-Browser: https://salsa.debian.org/debian/libfprint
 Vcs-Git: https://salsa.debian.org/debian/libfprint.git
 
-Package: libfprint2
+Package: libfprint-2-2
 Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends}, ${shlibs:Depends}
@@ -43,13 +43,13 @@ Description: async fingerprint library of fprint project, shared libraries
  .
  This package provides shared libraries.
 
-Package: libfprint2-dev
+Package: libfprint-2-dev
 Section: libdevel
 Architecture: any
 Depends: gir1.2-fprint-2.0 (= ${binary:Version}),
-         libfprint2 (= ${binary:Version}),
+         libfprint-2-2 (= ${binary:Version}),
          ${misc:Depends}
-Suggests: libfprint-doc
+Suggests: libfprint-2-doc
 Description: async fingerprint library of fprint project, development headers
  The fprint project aims to support for consumer fingerprint reader devices.
  .
@@ -67,7 +67,7 @@ Description: async fingerprint library of fprint project, development headers
  .
  This package provides development headers.
 
-Package: libfprint-doc
+Package: libfprint-2-doc
 Section: doc
 Architecture: all
 Depends: ${misc:Depends}

@@ -7,7 +7,7 @@ libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
       d/patches/use-non-versionned-libusbh-path.patch, not needed anymore
     - debian/patches/udev-rules-creation-add-Debian-specifics.patch: refreshed
       by Sebastien Bacher, thanks!
-    - Bump the soname to libfprint2
+    - Bump the soname to libfprint-2
     - Bump libglib2.0-dev and meson minimal versions
   * Bump debhelper compatibility version to 12
   * Add gobject-introspection and libgirepository1.0-dev to the
@@ -18,7 +18,7 @@ libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
   * Update debian/libfprint2.postinst for the new supported readers
   * debian/gbp.conf: Upstream tags have changed format
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 12 Feb 2020 18:18:14 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 10:27:06 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
