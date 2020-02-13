@@ -1,3 +1,10 @@
+libfprint (1:1.90.1-2) UNRELEASED; urgency=medium
+
+  * debian/control: Add libcairo-dev and python3 to build-dependencies as they
+    are explicitly required for some tests
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 17:35:49 +0100
+
 libfprint (1:1.90.1-1) experimental; urgency=medium
 
   * Team upload.
