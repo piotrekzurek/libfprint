@@ -17,8 +17,9 @@ libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
     the testsuite
   * Update debian/libfprint2.postinst for the new supported readers
   * debian/gbp.conf: Upstream tags have changed format
+  * debian/control: Bump Standards-Version to 4.5.0 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 10:27:06 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 10:59:42 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
