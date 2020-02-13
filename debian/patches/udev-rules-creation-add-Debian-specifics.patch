@@ -27,7 +27,7 @@ Last-Update: 2020-01-10
 +      g_print ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ATTRS{dev}==\"*\", ", entry->vid, entry->pid);
 +      if (bl_entry->vid == 0)
 +          g_print ("TEST==\"power/control\", ATTR{power/control}=\"auto\", ");
-+      g_print ("MODE=\"0664\", GROUP=\"plugdev\"\n");
++      g_print ("MODE=\"0660\", GROUP=\"plugdev\"\n");
        g_print ("SUBSYSTEM==\"usb\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{LIBFPRINT_DRIVER}=\"%s\"\n",
                 entry->vid, entry->pid, cls->full_name);
        num_printed++;

@@ -18,8 +18,11 @@ libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
   * Update debian/libfprint2.postinst for the new supported readers
   * debian/gbp.conf: Upstream tags have changed format
   * debian/control: Bump Standards-Version to 4.5.0 (no further changes)
+  * d/p/udev-rules-creation-add-Debian-specifics.patch: Avoid unprivileged
+    users to be able to read the devices, this is not necessary and could lead
+    to fingerprint images being captured.
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 10:59:42 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 11:19:04 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
