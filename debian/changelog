@@ -1,5 +1,7 @@
-libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
+libfprint (1:1.90.1-1) experimental; urgency=medium
 
+  * Team upload.
+  * The "I should check if somebody else hasn't done the work already" release
   * New upstream release
     - Replace libusb-1.0 build-dependency by gusb and add libgusb-doc to the
       Build-Depends-Indep. Also drop libxv-dev from the build-dep.
@@ -22,7 +24,7 @@ libfprint (1:1.90.1-1) UNRELEASED; urgency=medium
     users to be able to read the devices, this is not necessary and could lead
     to fingerprint images being captured.
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 11:19:04 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 16:35:50 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
