@@ -7,6 +7,10 @@ libfprint (1:1.90.1-2) UNRELEASED; urgency=medium
   [ Sebastien Bacher ]
   * debian/patches/git_reading_pointer.patch:
     - backport an upstream fix for a test issue
+  * debian/rules:
+    - don't fail the build on s390x test results, upstream stated that
+      fixing those is low priority for them since there is no real
+      usecase for fingerprint authentification on that architecture.
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 24 Feb 2020 17:08:02 +0100
 
