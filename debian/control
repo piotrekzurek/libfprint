@@ -113,3 +113,49 @@ Description: async fingerprint library of fprint project, gir bindings
  .
  This package can be used by other packages using the GIRepository format to
  generate dynamic bindings.
+
+Package: libfprint-2-tod-1
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Description: async fingerprint library of fprint project, drivers shared libraries
+ The fprint project aims to support for consumer fingerprint reader devices.
+ .
+ Previously, Linux support for such devices has been scattered amongst different
+ projects (many incomplete) and inconsistent in that application developers
+ would have to implement support for each type of fingerprint reader separately.
+ The idea is to change that by providing a central system to support all the
+ fingerprint readers as it's possible to get hands on.
+ .
+ libfprint is the centre of efforts, this component does the dirty job of
+ talking to fingerprint reading devices, and processing fingerprint data.
+ .
+ This library depends on the new libusb, which performs asynchronous callbacks,
+ allowing fprint to perform non-blocking device tasks.
+ .
+ This package provides shared libraries for the TOD drivers.
+
+Package: libfprint-2-tod-dev
+Section: libdevel
+Architecture: any
+Depends: libfprint-2-tod-1 (= ${binary:Version}),
+         ${misc:Depends}
+Description: async fingerprint library of fprint project, drivers development headers
+ The fprint project aims to support for consumer fingerprint reader devices.
+ .
+ Previously, Linux support for such devices has been scattered amongst different
+ projects (many incomplete) and inconsistent in that application developers
+ would have to implement support for each type of fingerprint reader separately.
+ The idea is to change that by providing a central system to support all the
+ fingerprint readers as it's possible to get hands on.
+ .
+ libfprint is the centre of efforts, this component does the dirty job of
+ talking to fingerprint reading devices, and processing fingerprint data.
+ .
+ This library depends on the new libusb, which performs asynchronous callbacks,
+ allowing fprint to perform non-blocking device tasks.
+ .
+ This package provides development headers for creating device drivers.
+ An example driver is available at:
+ https://gitlab.freedesktop.org/3v1n0/libfprint-tod-example-driver
