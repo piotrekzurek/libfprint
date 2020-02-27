@@ -1,3 +1,18 @@
+libfprint (1:1.90.1+tod1-1ubuntu1) UNRELEASED; urgency=medium
+
+  * TOD: Add TOuch Drivers loader
+  * debian/watch: Monitor libfprint-tod versions only
+  * debian/gbp.conf:
+    - Track ubuntu branch
+    - Use 'upstream-tod' branch as our upstream branch
+  * debian: Add libfprint-2-tod library and headers
+  * debian/control:
+    - Set ubuntu as maintainer
+    - Point Vcs tag to the ubuntu branch
+  * debian/README.tod.md: Added informations about the TOD fork
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 28 Feb 2020 17:13:47 +0100
+
 libfprint (1:1.90.1-2) experimental; urgency=medium
 
   [ Laurent Bigonville ]
