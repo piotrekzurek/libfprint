@@ -45,6 +45,10 @@ struct _FpIdEntry
     const gchar *virtual_envvar;
   };
   guint64 driver_data;
+
+  /*< private >*/
+  /* padding for future expansion */
+  gpointer _padding_dummy[16];
 };
 
 /**
@@ -129,6 +133,10 @@ struct _FpDeviceClass
   void (*delete)   (FpDevice * device);
 
   void (*cancel)   (FpDevice *device);
+
+  /*< private >*/
+  /* padding for future expansion */
+  gpointer _padding_dummy[32];
 };
 
 /**

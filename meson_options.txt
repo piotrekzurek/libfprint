@@ -22,3 +22,8 @@ option('doc',
        description: 'Whether to build the API documentation',
        type: 'boolean',
        value: true)
+
+option('tod',
+       description: 'Whether to build the TOD library',
+       type: 'boolean',
+       value: true)

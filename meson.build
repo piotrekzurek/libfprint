@@ -1,5 +1,5 @@
 project('libfprint', [ 'c', 'cpp' ],
-    version: '1.90.1',
+    version: '1.90.1+tod1',
     license: 'LGPLv2.1+',
     default_options: [
         'buildtype=debugoptimized',
@@ -189,6 +189,8 @@ if get_option('gtk-examples')
         error('GTK+ 3.x is required for GTK+ examples')
     endif
 endif
+
+libfprint_conf.set10('HAVE_LIBFPRINT_TOD', get_option('tod'))
 
 configure_file(output: 'config.h', configuration: libfprint_conf)
 

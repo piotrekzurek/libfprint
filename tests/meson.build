@@ -189,3 +189,45 @@ if valgrind.found()
                 valgrind.path(), glib_suppressions, python_suppressions)
         ])
 endif
+
+if get_option('tod')
+    tod_envs = envs
+    tod_envs.set('FP_TOD_DRIVERS_DIR', meson.current_build_dir())
+    tod_envs.set('FP_TOD_KEEP_MODULES_OPEN', 'TRUE')
+    tod_envs.set('FP_VIRTUAL_FAKE_DEVICE', 'yes')
+    tod_envs.append('FP_DRIVERS_WHITELIST', 'fake_test_dev')
+
+    fake_driver = shared_module('device-fake-tod-driver',
+        sources: [
+            'test-device-fake-tod.c',
+        ],
+        link_with: [
+            test_utils,
+            libfprint_tod,
+        ],
+        include_directories: include_directories('../libfprint'),
+        dependencies: deps,
+        install: false
+    )
+
+    tod_unit_tests = [
+        'fp-context-tod',
+        'fp-device-tod',
+    ]
+
+    foreach test_name: tod_unit_tests
+        basename = 'test-' + test_name
+        test_exe = executable(basename,
+            sources: basename + '.c',
+            dependencies: libfprint_private_dep,
+            c_args: common_cflags,
+            link_with: test_utils,
+        )
+        test(test_name,
+            find_program('test-runner.sh'),
+            suite: ['unit-tests', 'tod'],
+            args: [test_exe],
+            env: tod_envs,
+        )
+    endforeach
+endif

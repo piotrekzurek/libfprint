@@ -93,6 +93,10 @@ struct _FpImageDeviceClass
   void          (*change_state) (FpImageDevice      *dev,
                                  FpiImageDeviceState state);
   void          (*deactivate)   (FpImageDevice *dev);
+
+  /*< private >*/
+  /* padding for future expansion */
+  gpointer _padding_dummy[32];
 };
 
 void fpi_image_device_set_bz3_threshold (FpImageDevice *self,

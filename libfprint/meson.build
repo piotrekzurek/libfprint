@@ -31,6 +31,7 @@ libfprint_private_headers = [
     'fpi-byte-reader.h',
     'fpi-byte-utils.h',
     'fpi-byte-writer.h',
+    'fpi-compat.h',
     'fpi-context.h',
     'fpi-device.h',
     'fpi-image-device.h',
@@ -237,6 +238,10 @@ libfprint_private = static_library('fprint-private',
     dependencies: deps,
     link_with: libnbis,
     install: false)
+
+if get_option('tod')
+    subdir('tod')
+endif
 
 libfprint_drivers = static_library('fprint-drivers',
     sources: drivers_sources,

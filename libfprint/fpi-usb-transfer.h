@@ -101,6 +101,10 @@ struct _FpiUsbTransfer
 
   /* Data free function */
   GDestroyNotify free_buffer;
+
+  /*< private >*/
+  /* padding for future expansion */
+  gpointer _padding_dummy[32];
 };
 
 GType              fpi_usb_transfer_get_type (void) G_GNUC_CONST;

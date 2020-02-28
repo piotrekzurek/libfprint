@@ -110,6 +110,7 @@ struct fpi_line_asmbl_ctx
   unsigned char (*get_pixel)(struct fpi_line_asmbl_ctx *ctx,
                              GSList                    *line,
                              unsigned int               x);
+  gpointer _padding_dummy[32];
 };
 
 FpImage *fpi_assemble_lines (struct fpi_line_asmbl_ctx *ctx,

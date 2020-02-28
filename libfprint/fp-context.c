@@ -24,6 +24,11 @@
 #include "fpi-device.h"
 #include <gusb.h>
 
+#include <config.h>
+#ifdef HAVE_LIBFPRINT_TOD
+#include "tod/tod-shared-loader.h"
+#endif
+
 /**
  * SECTION: fp-context
  * @title: FpContext
@@ -214,6 +219,8 @@ fp_context_finalize (GObject *object)
   g_object_run_dispose (G_OBJECT (priv->usb_ctx));
   g_clear_object (&priv->usb_ctx);
 
+  fpi_tod_shared_drivers_unregister ();
+
   G_OBJECT_CLASS (fp_context_parent_class)->finalize (object);
 }
 
@@ -265,10 +272,15 @@ static void
 fp_context_init (FpContext *self)
 {
   g_autoptr(GError) error = NULL;
+  g_autoptr(GArray) shared_drivers = NULL;
   FpContextPrivate *priv = fp_context_get_instance_private (self);
   guint i;
 
   priv->drivers = fpi_get_driver_types ();
+
+  fpi_tod_shared_drivers_register ();
+  shared_drivers = fpi_tod_shared_drivers_get ();
+  g_array_prepend_vals (priv->drivers, shared_drivers->data, shared_drivers->len);
 
   if (get_drivers_whitelist_env ())
     {
