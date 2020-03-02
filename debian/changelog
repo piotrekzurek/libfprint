@@ -1,5 +1,6 @@
-libfprint (1:1.90.1+tod1-1ubuntu1) UNRELEASED; urgency=medium
+libfprint (1:1.90.1+tod1-0ubuntu1) UNRELEASED; urgency=medium
 
+  [ Marco Trevisan (Treviño) ]
   * TOD: Add TOuch Drivers loader
   * debian/watch: Monitor libfprint-tod versions only
   * debian/gbp.conf:
@@ -11,7 +12,10 @@ libfprint (1:1.90.1+tod1-1ubuntu1) UNRELEASED; urgency=medium
     - Point Vcs tag to the ubuntu branch
   * debian/README.tod.md: Added informations about the TOD fork
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 28 Feb 2020 17:13:47 +0100
+  [ Iain Lane ]
+  * control: Point Vcs-* to salsa/ubuntu-dev-team/libfprint
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 02 Mar 2020 16:43:34 +0000
 
 libfprint (1:1.90.1-2) experimental; urgency=medium
 
