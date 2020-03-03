@@ -1,4 +1,4 @@
-libfprint-2-tod.so.1 libfprint-2-tod-1 #MINVER#
+libfprint-2-tod.so.1 libfprint-2-tod1 #MINVER#
  LIBFPRINT_TOD_1.0.0@LIBFPRINT_TOD_1.0.0 1:1.90.1+tod1
  fpi_assemble_frames@LIBFPRINT_TOD_1.0.0 1:1.90.1+tod1
  fpi_assemble_lines@LIBFPRINT_TOD_1.0.0 1:1.90.1+tod1
