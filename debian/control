@@ -115,7 +115,7 @@ Description: async fingerprint library of fprint project, gir bindings
  This package can be used by other packages using the GIRepository format to
  generate dynamic bindings.
 
-Package: libfprint-2-tod-1
+Package: libfprint-2-tod1
 Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends}, ${shlibs:Depends}
@@ -140,7 +140,7 @@ Description: async fingerprint library of fprint project, drivers shared librari
 Package: libfprint-2-tod-dev
 Section: libdevel
 Architecture: any
-Depends: libfprint-2-tod-1 (= ${binary:Version}),
+Depends: libfprint-2-tod1 (= ${binary:Version}),
          ${misc:Depends}
 Description: async fingerprint library of fprint project, drivers development headers
  The fprint project aims to support for consumer fingerprint reader devices.
