@@ -1,3 +1,15 @@
+libfprint (1:1.90.1+tod1-0ubuntu4) focal; urgency=medium
+
+  * Rebuild with the new libgusb
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 18 Mar 2020 15:34:58 +0100
+
+libfprint (1:1.90.1+tod1-0ubuntu3) focal; urgency=medium
+
+  * Rebuild with the current libgusb (lp: #1867639)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 16 Mar 2020 20:27:38 +0100
+
 libfprint (1:1.90.1+tod1-0ubuntu2) focal; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
