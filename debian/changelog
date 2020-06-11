@@ -1,9 +1,85 @@
-libfprint (1:1.0-1+vfs0090~e1) eoan; urgency=medium
+libfprint (1:1.90.1+tod1-0ubuntu4) focal; urgency=medium
 
-  * Merge with salsa branch
-  * vfs0090: Various driver cleanups
+  * Rebuild with the new libgusb
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 03 Dec 2019 16:41:36 +0100
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 18 Mar 2020 15:34:58 +0100
+
+libfprint (1:1.90.1+tod1-0ubuntu3) focal; urgency=medium
+
+  * Rebuild with the current libgusb (lp: #1867639)
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 16 Mar 2020 20:27:38 +0100
+
+libfprint (1:1.90.1+tod1-0ubuntu2) focal; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/control: Make package to match soname, rename to libfprint-2-tod1
+
+ -- Iain Lane <iain.lane@canonical.com>  Tue, 03 Mar 2020 09:21:35 +0000
+
+libfprint (1:1.90.1+tod1-0ubuntu1) focal; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * TOD: Add TOuch Drivers loader
+  * debian/watch: Monitor libfprint-tod versions only
+  * debian/gbp.conf:
+    - Track ubuntu branch
+    - Use 'upstream-tod' branch as our upstream branch
+  * debian: Add libfprint-2-tod library and headers
+  * debian/control:
+    - Set ubuntu as maintainer
+    - Point Vcs tag to the ubuntu branch
+  * debian/README.tod.md: Added informations about the TOD fork
+
+  [ Iain Lane ]
+  * control: Point Vcs-* to salsa/ubuntu-dev-team/libfprint
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 02 Mar 2020 16:43:58 +0000
+
+libfprint (1:1.90.1-2) experimental; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/control: Add libcairo-dev and python3 to build-dependencies as they
+    are explicitly required for some tests
+
+  [ Sebastien Bacher ]
+  * debian/patches/git_reading_pointer.patch:
+    - backport an upstream fix for a test issue
+  * debian/rules:
+    - don't fail the build on s390x test results, upstream stated that
+      fixing those is low priority for them since there is no real
+      usecase for fingerprint authentification on that architecture.
+  * Use the correct indentation for the previous changes
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 27 Feb 2020 16:28:45 +0100
+
+libfprint (1:1.90.1-1) experimental; urgency=medium
+
+  * Team upload.
+  * The "I should check if somebody else hasn't done the work already" release
+  * New upstream release
+    - Replace libusb-1.0 build-dependency by gusb and add libgusb-doc to the
+      Build-Depends-Indep. Also drop libxv-dev from the build-dep.
+    - Drop d/patches/kFreeBSD_FTBFS_add_ETIME_definition.patch and
+      d/patches/use-non-versionned-libusbh-path.patch, not needed anymore
+    - debian/patches/udev-rules-creation-add-Debian-specifics.patch: refreshed
+      by Sebastien Bacher, thanks!
+    - Bump the soname to libfprint-2
+    - Bump libglib2.0-dev and meson minimal versions
+  * Bump debhelper compatibility version to 12
+  * Add gobject-introspection and libgirepository1.0-dev to the
+    build-dependencies and install the GObject introspection bindings
+  * debian/control: Bump Standards-Version to 4.4.1 (no further changes)
+  * debian/control: Build-Depends on python3-cairo, python3-gi, umockdev for
+    the testsuite
+  * Update debian/libfprint2.postinst for the new supported readers
+  * debian/gbp.conf: Upstream tags have changed format
+  * debian/control: Bump Standards-Version to 4.5.0 (no further changes)
+  * d/p/udev-rules-creation-add-Debian-specifics.patch: Avoid unprivileged
+    users to be able to read the devices, this is not necessary and could lead
+    to fingerprint images being captured.
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 13 Feb 2020 16:35:50 +0100
 
 libfprint (1:1.0-1) unstable; urgency=medium
 
@@ -27,6 +103,13 @@ libfprint (1:1.0-1) unstable; urgency=medium
     debian/libfprint0.postinst is generated
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 23 Aug 2019 17:27:45 +0200
+
+libfprint (1:1.0-1+vfs0090~e1) eoan; urgency=medium
+
+  * Merge with salsa branch
+  * vfs0090: Various driver cleanups
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 03 Dec 2019 16:41:36 +0100
 
 libfprint (1:0.9.9-0+vfs0090~d3) disco; urgency=medium
 

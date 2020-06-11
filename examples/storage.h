@@ -18,10 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __STORAGE_H
-#define __STORAGE_H
+#pragma once
 
-int print_data_save(struct fp_print_data *fp_data, enum fp_finger finger);
-struct fp_print_data* print_data_load(struct fp_dev *dev, enum fp_finger finger);
-
-#endif /* __STORAGE_H */
+int print_data_save (FpPrint *print,
+                     FpFinger finger);
+FpPrint * print_data_load (FpDevice *dev,
+                           FpFinger  finger);
+FpPrint * print_create_template (FpDevice *dev,
+                                 FpFinger  finger);
+gboolean print_image_save (FpPrint    *print,
+                           const char *path);

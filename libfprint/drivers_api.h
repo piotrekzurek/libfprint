@@ -2,6 +2,7 @@
  * Driver API definitions
  * Copyright (C) 2007-2008 Daniel Drake <dsd@gentoo.org>
  * Copyright (C) 2018 Bastien Nocera <hadess@hadess.net>
+ * Copyright (C) 2019 Marco Trevisan <marco.trevisan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,22 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef __DRIVERS_API_H__
-#define __DRIVERS_API_H__
+#pragma once
 
-#include <config.h>
-
-#include "fprint.h"
-#include "fpi-log.h"
-#include "fpi-dev.h"
-#include "fpi-dev-img.h"
-#include "fpi-core.h"
-#include "fpi-ssm.h"
-#include "fpi-poll.h"
-#include "fpi-dev.h"
-#include "fpi-usb.h"
-#include "fpi-img.h"
+#include "fpi-compat.h"
 #include "fpi-assembling.h"
-#include "drivers/driver_ids.h"
-
-#endif
+#include "fpi-device.h"
+#include "fpi-image-device.h"
+#include "fpi-image.h"
+#include "fpi-log.h"
+#include "fpi-print.h"
+#include "fpi-usb-transfer.h"
+#include "fpi-ssm.h"

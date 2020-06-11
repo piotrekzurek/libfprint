@@ -1,7 +1,5 @@
 # Upstream backports
+git_reading_pointer.patch
 
 # Debian specifics
-kFreeBSD_FTBFS_add_ETIME_definition.patch
 udev-rules-creation-add-Debian-specifics.patch
-use-non-versionned-libusbh-path.patch
-vfs0090-sensor-support.patch
