@@ -1,32 +1,62 @@
 ## Validity Sensor `138a:0090` libfprint driver
 #### A linux driver for 2016 ThinkPad's fingerprint readers
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/dYe8eKaoUSE/0.jpg)](https://www.youtube.com/watch?v=dYe8eKaoUSE)`
+[![See it in action!](https://img.youtube.com/vi/dYe8eKaoUSE/0.jpg)](https://www.youtube.com/watch?v=dYe8eKaoUSE)`
 
-Thanks to the amazing work that [nmikhailov](https://github.com/nmikhailov) did in his [prototype](https://github.com/nmikhailov/Validity90/), I spent some time in getting a libfprint driver for the `138a:0090` device up...
+Thanks to the amazing work that [nmikhailov](https://github.com/nmikhailov) did in his [prototype](https://github.com/nmikhailov/Validity90/) and [uunicorn](https://github.com/uunicorn/) in [python-validity](https://github.com/uunicorn/python-validity) and [synaWudfBioUsb-sandbox](https://github.com/uunicorn/synaWudfBioUsb-sandbox), I spent some time in getting a libfprint driver for the `138a:0090` device up...
 
- * It only works if the device has been initialized with a Windows VirtualBox (sharing USB) guest or with a Windows installation in bare metal
- * Most of the device interaction and crypto code is coming from the prototype, so basically it needs lots of cleanup, but I noticed Nikita is already on that, so I'll be happy to integrate it in next iterations (the thing that actually took the most was having proper fprintd state machines).
+ * It only works if the device has been initialized using [validity-sensors-tools/](https://snapcraft.io/validity-sensors-tools/)
+   - Alernatively, but it's less secure, you can use a Windows installation with VirtualBox (sharing USB) guest or with a Windows installation in bare metal
+ * Most of the device interaction and crypto code is coming from the prototype, so basically it needs lots of cleanup, but I hope to rebase this on the code from python-validity
  * Here enroll, verification, led and all the operations work
- * First initialization is the most problematic thing so far, we're still looking on it.
  * It uses libfprint image comparison algorithm, we might move to in-device check later.
 
-You can test it using `fprint-demo` available in various distro's repositories, or just using `fprintd-*` tools (GNOME supports it natively from control center).
+You can test it using the [examples](tree/vfs0090/examples) or just using `fprintd-*` tools (GNOME supports it natively from control center).
 
+
+### Device initialization and pairing
+
+I racommend using the [validity-sensors-tools/](https://snapcraft.io/validity-sensors-tools/), you can install it in any distro as snap, or you can use it manually from sources located in [my python validity fork](https://github.com/3v1n0/python-validity)
+
+```bash
+sudo snap install validity-sensors-tools
+
+# Give it access to the usb devices
+sudo snap connect validity-sensors-tools:raw-usb
+
+# Initialize the device
+sudo validity-sensors-tools.initializer
+
+# Test the device
+sudo validity-sensors-tools.led_test
+
+# See other avilable tools
+validity-sensors-tools --help
+```
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/validity-sensors-tools)
 
 #### Ubuntu installation
 
-If you're using ubuntu just use [this PPA](https://launchpad.net/~3v1n0/+archive/ubuntu/libfprint-vfs0090) to get the libfprint packages with vfs0090 sensor support.
+If you're using ubuntu just use [this PPA](https://launchpad.net/~3v1n0/+archive/ubuntu/libfprint-vfs0090) to get the libfprint TOD packages with vfs0090 sensor support.
 
-
-Once you've added the ppa you can test it with the `fprint_demo` application (`fprint-demo` package) or use it for your desktop by installing the `libpam-fprintd`package.
+Also, in the ubuntu (and derivates) the code that you will use will be based on the [tod submodule](https://gitlab.freedesktop.org/3v1n0/libfprint-tod-vfs0090).
 
 You can enroll your fingers by using the `fprintd-enroll` utility or from UI using `unity-control-center user-accounts` in unity or `gnome-control-center user-accounts` in GNOME (it's the same as going in System settings -> User accounts pane and enable the fingerprint login).
 
 So, in steps (for ubuntu) it would be:
- - `sudo add-apt-repository -u ppa:3v1n0/libfprint-vfs0090`
- - `sudo apt install libpam-fprintd`
- - Go in system settings (account) and enable the fingerprint login
+```bash
+# Initialize the device
+sudo snap install validity-sensors-tools
+sudo snap connect validity-sensors-tools:raw-usb
+sudo validity-sensors-tools.initializer
+
+# Add the repository and install the tod package
+sudo add-apt-repository -u ppa:3v1n0/libfprint-vfs0090
+sudo apt install libfprint-2-tod-vfs0090
+```
+
+Then go in system settings (account) and enable the fingerprint login
 
 #### Arch linux Installation
 
@@ -37,11 +67,11 @@ Install packages:
 #### Fedora (tested on 28)
 - `sudo dnf install -y libusb*-devel libtool nss nss-devel gtk3-devel glib2-devel openssl openssl-devel libXv-devel gcc-c++`
 - `git clone https://github.com/3v1n0/libfprint`
-- `cd fprint && ./autogen.sh && make && sudo make install`
+- `meson libfprint libfprint/_build && sudo ninja -C libfprint/_build install`
 
 #### Other distros
  - `git clone https://github.com/3v1n0/libfprint`
- - `cd fprint && ./autogen.sh && make && sudo make install`
+ - `meson libfprint libfprint/_build && sudo ninja -C libfprint/_build install`
 
 
 #### fprintd enrolling
