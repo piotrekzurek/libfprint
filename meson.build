@@ -159,6 +159,18 @@ foreach driver: drivers
         if not imaging_dep.found()
             error('pixman is required for imaging support')
         endif
+
+        git = find_program('git')
+        if git.found()
+            message('Updating the vfs0090 submodule')
+            c = run_command(git, ['submodule', 'update', '--init', '--recursive'])
+
+            if c.returncode() != 0
+                error('Impossible to update the vfs0090 submodule')
+            endif
+        else
+            message('Ensure you updated the vfs0090 submodule!')
+        endif
     endif
     if not all_drivers.contains(driver)
         error('Invalid driver \'' + driver + '\'')
