@@ -1,3 +1,9 @@
+libfprint (1:1.90.1+tod1-0ubuntu4+vfs0090~f2)  UNRELEASED; urgency=medium
+
+  * debian/control: Add transient dependency on libfprint-2-tod-vfs0090
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 11 Jun 2020 20:39:34 +0200
+
 libfprint (1:1.90.1+tod1-0ubuntu4) focal; urgency=medium
 
   * Rebuild with the new libgusb
