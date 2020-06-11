@@ -27,7 +27,7 @@ Vcs-Git: https://salsa.debian.org/ubuntu-dev-team/libfprint.git -b ubuntu
 Package: libfprint-2-2
 Architecture: any
 Multi-Arch: same
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, libfprint-2-tod-vfs0090
 Pre-Depends: ${misc:Pre-Depends}
 Description: async fingerprint library of fprint project, shared libraries
  The fprint project aims to support for consumer fingerprint reader devices.
