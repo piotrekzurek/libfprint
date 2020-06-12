@@ -5,6 +5,7 @@
 
 Thanks to the amazing work that [nmikhailov](https://github.com/nmikhailov) did in his [prototype](https://github.com/nmikhailov/Validity90/), I spent some time in getting a libfprint driver for the `138a:0090` device up...
 
+ * This version is for libfprint1, that is now deprecated. See the [libfprint2 version](https://github.com/3v1n0/libfprint/tree/vfs0090).
  * It only works if the device has been initialized with a Windows VirtualBox (sharing USB) guest or with a Windows installation in bare metal
  * Most of the device interaction and crypto code is coming from the prototype, so basically it needs lots of cleanup, but I noticed Nikita is already on that, so I'll be happy to integrate it in next iterations (the thing that actually took the most was having proper fprintd state machines).
  * Here enroll, verification, led and all the operations work
