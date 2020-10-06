@@ -1,3 +1,6 @@
 [submodule "vfs0090 driver"]
 	path = libfprint/drivers/vfs0090
 	url = https://github.com/3v1n0/libfprint-tod-vfs0090.git
+[submodule "libfprint/drivers/vfs0090"]
+	path = libfprint/drivers/vfs0090
+	url = https://github.com/piotrekzurek/libfprint-tod-vfs0090
