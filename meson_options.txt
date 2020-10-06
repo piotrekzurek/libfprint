@@ -5,7 +5,7 @@ option('drivers',
 option('introspection',
        description: 'Build GObject Introspection repository',
        type: 'boolean',
-       value: true)
+       value: false)
 option('udev_rules',
        description: 'Whether to create a udev rules file',
        type: 'boolean',
@@ -21,4 +21,4 @@ option('gtk-examples',
 option('doc',
        description: 'Whether to build the API documentation',
        type: 'boolean',
-       value: true)
+       value: false)
