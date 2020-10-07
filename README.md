@@ -1,3 +1,9 @@
+
+Mind this is clone of https://github.com/3v1n0/libfprint repo verbatim with only one change on top of it:
+the subproject repo linking to the vfs0090 driver is changed to my subproject repo with patched version to better support 0097 device that is in my laptop.
+This is just to ease the process of re-compiling the driver without the need to patch every now and then.
+Some links in this README.md file are changed to reflect above.
+
 ## Validity Sensor `138a:0090` and `138a:0097` libfprint driver
 #### A linux driver for 2016 ThinkPad's fingerprint readers
 
@@ -77,13 +83,13 @@ Install packages:
  * `fprintd`
  * `libfprint-vfs0090-git` from AUR
 
-#### Fedora (tested on 28)
+#### Fedora (tested on 32)
 - `sudo dnf install -y libusb*-devel libtool nss nss-devel gtk3-devel glib2-devel openssl openssl-devel libXv-devel gcc-c++`
-- `git clone https://github.com/3v1n0/libfprint`
+- `git clone https://github.com/piotrekzurek/libfprint`
 - `meson libfprint libfprint/_build && sudo ninja -C libfprint/_build install`
 
 #### Other distros
- - `git clone https://github.com/3v1n0/libfprint`
+ - `git clone https://github.com/piotrekzurek/libfprint`
  - `meson libfprint libfprint/_build && sudo ninja -C libfprint/_build install`
 
 
