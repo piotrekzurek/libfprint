@@ -37,7 +37,7 @@ common_cflags = cc.get_supported_arguments([
     '-Wundef',
     '-Wunused',
     '-Werror=address',
-    '-Werror=array-bounds',
+    '-Wno-error=array-bounds',
     '-Werror=empty-body',
     '-Werror=init-self',
     '-Werror=int-to-pointer-cast',
